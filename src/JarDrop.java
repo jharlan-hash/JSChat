@@ -4,21 +4,41 @@ import java.util.Scanner;
 
 public class JarDrop{
     public static void main (String[] args) throws IOException, InterruptedException {
-        if (args.length == 0){
+        // args[0] is command name
+        // args[1] is ip
+        // args[2] is port (optional, defaults to 22(?))
+        String commandName = "";
+        String ip = "";
+        int port = 0;
+
+        System.out.println("length: " + args.length);
+        System.out.println("0th arg: " + args[0]);
+        System.out.println("1st arg: " + args[1]);
+        System.out.println("2nd arg: " + args[2]);
+        if (args.length == 3){
+            commandName = args[0];
+            ip = args[1];
+            port = Integer.parseInt(args[2]);
+        } else {
+            System.out.println("Please enter three arguments - command name (con or srv), ip, and port");
+            System.exit(1);
+        }
+
+        if (commandName.contains("con")){
             System.out.println("Acting as a client");
-            client();
-        } else if (args.length == 1){
+            client(ip, port);
+        } else if (commandName.contains("serv") || commandName.contains("srv")){
             System.out.println("Acting as a server");
-            server(args);
+            server(port);
         } else {
             System.out.println("too many arguments supplied");
         }
     }
 
-    public static void client () throws IOException, InterruptedException{
+    public static void client (String ip, int port) throws IOException, InterruptedException{
         Socket socket = new Socket();
         Scanner sc = new Scanner(System.in);
-        socket.connect(new InetSocketAddress("127.0.0.1", 5001), 1000);
+        socket.connect(new InetSocketAddress(ip, port), 1000);
         System.out.println("Connection successful!");
 
         DataInputStream dataIn = new DataInputStream(socket.getInputStream());
@@ -71,15 +91,12 @@ public class JarDrop{
         sc.close();
     }
 
-    public static void server (String[] args) throws IOException, InterruptedException{
-        ServerSocket serverSocket = new ServerSocket(5001);
+    public static void server (int port) throws IOException, InterruptedException{
+        ServerSocket serverSocket = new ServerSocket(port);
         Scanner sc = new Scanner(System.in);
         System.out.println("Listening for clients...");
 
         Socket clientSocket = serverSocket.accept();
-        String clientSocketIP = clientSocket.getInetAddress().toString();
-        int clientSocketPort = clientSocket.getPort();
-        System.out.println("[IP: " + clientSocketIP + " ,Port: " + clientSocketPort +"]  " + "Client Connection Successful!");
 
         DataInputStream dataIn = new DataInputStream(clientSocket.getInputStream());
         DataOutputStream dataOut = new DataOutputStream(clientSocket.getOutputStream());
