@@ -11,10 +11,6 @@ public class JarDrop{
         String ip = "";
         int port = 0;
 
-        System.out.println("length: " + args.length);
-        System.out.println("0th arg: " + args[0]);
-        System.out.println("1st arg: " + args[1]);
-        System.out.println("2nd arg: " + args[2]);
         if (args.length == 3){
             commandName = args[0];
             ip = args[1];
@@ -38,21 +34,28 @@ public class JarDrop{
     public static void client (String ip, int port) throws IOException, InterruptedException{
         Socket socket = new Socket();
         Scanner sc = new Scanner(System.in);
+
         socket.connect(new InetSocketAddress(ip, port), 1000);
         System.out.println("Connection successful!");
 
         DataInputStream dataIn = new DataInputStream(socket.getInputStream());
         DataOutputStream dataOut = new DataOutputStream(socket.getOutputStream());
 
+        InetAddress addr = InetAddress.getByName(ip);
+        String hostName = addr.getHostName();
+
         Thread getMessageFromServer = new Thread(){
             public void run() {
-                while (true) {
+                boolean done = false;
+
+                while (!done) {
                     try {
                         String serverMessage = dataIn.readUTF();
-                        System.out.println(serverMessage);
+                        System.out.println("\r[" + hostName + "] " + serverMessage);
+                        System.out.print("[you]");
 
-                        if (serverMessage.equals("Exit")){
-                            return;
+                        if (serverMessage.contains("/exit")){
+                            done = true;
                         }
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -63,14 +66,18 @@ public class JarDrop{
         };
 
         Thread sendMessageToServer = new Thread(){
+
             public void run() {
-                while (true) {
+                boolean done = false;
+
+                while (!done) {
                     try {
                         String clientMessage = sc.nextLine();
-                        dataOut.writeUTF("[client] " + clientMessage);
+                        dataOut.writeUTF(clientMessage);
 
-                        if (clientMessage.equals("Exit")){
-                            return;
+                        if (clientMessage.contains("/exit")){
+                            getMessageFromServer.interrupt();
+                            done = true;
                         }
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -101,18 +108,25 @@ public class JarDrop{
         DataInputStream dataIn = new DataInputStream(clientSocket.getInputStream());
         DataOutputStream dataOut = new DataOutputStream(clientSocket.getOutputStream());
 
+        InetAddress addr = InetAddress.getByName(ip);
+        String hostName = addr.getHostName();
+
         Thread getMessageFromClient = new Thread(){
             public void run() {
-                while (true) {
+                boolean done = false;
+
+                while (!done) {
                     try {
                         String clientMessage = dataIn.readUTF();
-                        System.out.println(clientMessage);
+                        System.out.println("\r[" + hostName + "] " + clientMessage);
+                        System.out.print("[client]");
 
-                        if (clientMessage.equals("Exit")){
-                            return;
+                        if (clientMessage.contains("/exit")){
+                            done = true;
                         }
                     } catch (IOException e) {
                         e.printStackTrace();
+                        done = true;
                         return;
                     }
                 }
@@ -121,14 +135,17 @@ public class JarDrop{
 
         Thread sendMessageToClient = new Thread(){
             public void run() {
-                while (true) {
-                    try {
-                        System.out.print("[server]");
-                        String serverMessage = sc.nextLine();
-                        dataOut.writeUTF("[server] " + serverMessage);
+                boolean done = false;
 
-                        if (serverMessage.equals("Exit")){
-                            return;
+                while (!done) {
+                    try {
+                        System.out.print("[server] ");
+                        String serverMessage = sc.nextLine();
+                        dataOut.writeUTF(serverMessage);
+
+                        if (serverMessage.contains("/exit")){
+                            getMessageFromClient.interrupt();
+                            done = true;
                         }
                     } catch (IOException e) {
                         e.printStackTrace();
