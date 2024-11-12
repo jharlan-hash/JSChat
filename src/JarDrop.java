@@ -44,18 +44,22 @@ public class JarDrop{
         InetAddress addr = InetAddress.getByName(ip);
         String hostName = addr.getHostName();
 
-        Thread getMessageFromServer = new Thread(){
+
+        Thread sendMessageToServer = new Thread(){
+
             public void run() {
                 boolean done = false;
 
                 while (!done) {
                     try {
-                        System.out.print("[you]");
-                        String serverMessage = dataIn.readUTF();
-                        System.out.println("\r[" + hostName + "] " + serverMessage);
-
-                        if (serverMessage.contains("/exit")){
+                        if (!Thread.interrupted()){
+                            String messageSent = sc.nextLine();
+                            dataOut.writeUTF(messageSent);
+                            System.out.print("[you] ");
+                        } else {
+                            System.out.println("sendMessageToServer interrupted");
                             done = true;
+                            return;
                         }
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -65,19 +69,22 @@ public class JarDrop{
             }
         };
 
-        Thread sendMessageToServer = new Thread(){
-
+        Thread getMessageFromServer = new Thread(){
             public void run() {
                 boolean done = false;
+                String messageReceived = "";
 
                 while (!done) {
                     try {
-                        String clientMessage = sc.nextLine();
-                        dataOut.writeUTF(clientMessage);
 
-                        if (clientMessage.contains("/exit")){
-                            getMessageFromServer.interrupt();
-                            done = true;
+                        if (!messageReceived.contains("/exit")){
+                            System.out.print("[you] ");
+                            messageReceived = dataIn.readUTF();
+                            System.out.println("\r[" + hostName + "] " + messageReceived);
+                        } else {
+                            System.out.print("\r " + hostName + " has left the chat.");
+                            sendMessageToServer.interrupt();
+                            return;
                         }
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -111,27 +118,6 @@ public class JarDrop{
         InetAddress addr = InetAddress.getByName(ip);
         String hostName = addr.getHostName();
 
-        Thread getMessageFromClient = new Thread(){
-            public void run() {
-                boolean done = false;
-
-                while (!done) {
-                    try {
-                        String clientMessage = dataIn.readUTF();
-                        System.out.println("\r[" + hostName + "] " + clientMessage);
-                        System.out.print("[client]");
-
-                        if (clientMessage.contains("/exit")){
-                            done = true;
-                        }
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                        done = true;
-                        return;
-                    }
-                }
-            }
-        };
 
         Thread sendMessageToClient = new Thread(){
             public void run() {
@@ -139,16 +125,44 @@ public class JarDrop{
 
                 while (!done) {
                     try {
-                        System.out.print("[server] ");
-                        String serverMessage = sc.nextLine();
-                        dataOut.writeUTF(serverMessage);
-
-                        if (serverMessage.contains("/exit")){
-                            getMessageFromClient.interrupt();
+                        if (!Thread.interrupted()){
+                            System.out.print("[you] ");
+                            String messageSent = sc.nextLine();
+                            dataOut.writeUTF(messageSent);
+                        } else {
+                            System.out.println("sendMessageToClient interrupted");
                             done = true;
+                            return;
                         }
+
                     } catch (IOException e) {
                         e.printStackTrace();
+                        return;
+                    }
+                }
+            }
+        };
+
+        Thread getMessageFromClient = new Thread(){
+            public void run() {
+                boolean done = false;
+                String messageReceived = "";
+
+                while (!done) {
+                    try {
+                        if (!messageReceived.contains("/exit")){
+                            messageReceived = dataIn.readUTF();
+                            System.out.println("\r[" + hostName + "] " + messageReceived);
+                            System.out.print("[you] ");
+                        } else {
+                            System.out.println("\r " + hostName + " has left the chat.");
+                            sendMessageToClient.interrupt();
+                            return;
+                        }
+
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        done = true;
                         return;
                     }
                 }
