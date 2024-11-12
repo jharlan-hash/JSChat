@@ -25,7 +25,7 @@ public class JarDrop{
             client(ip, port);
         } else if (commandName.contains("serv") || commandName.contains("srv")){
             System.out.println("Acting as a server");
-            server(port);
+            server(ip, port);
         } else {
             System.out.println("too many arguments supplied");
         }
@@ -50,9 +50,9 @@ public class JarDrop{
 
                 while (!done) {
                     try {
+                        System.out.print("[you]");
                         String serverMessage = dataIn.readUTF();
                         System.out.println("\r[" + hostName + "] " + serverMessage);
-                        System.out.print("[you]");
 
                         if (serverMessage.contains("/exit")){
                             done = true;
@@ -98,7 +98,7 @@ public class JarDrop{
         sc.close();
     }
 
-    public static void server (int port) throws IOException, InterruptedException{
+    public static void server (String ip, int port) throws IOException, InterruptedException{
         ServerSocket serverSocket = new ServerSocket(port);
         Scanner sc = new Scanner(System.in);
         System.out.println("Listening for clients...");
