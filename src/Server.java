@@ -3,7 +3,7 @@ import java.io.*;
 import java.util.Scanner;
 
 public class Server {
-    public static void server_mode (String ip, int port) throws IOException, InterruptedException {
+    public static void serverMode (String ip, int port) throws IOException, InterruptedException {
         ServerSocket serverSocket = new ServerSocket(port);
         Scanner sc = new Scanner(System.in);
 
@@ -19,23 +19,16 @@ public class Server {
 
         Thread sendMessageToClient = new Thread(){
             public void run() {
-                boolean done = false;
-
-                while (!done) {
+                while (true) {
                     try {
-                        if (!Thread.interrupted()){
-                            System.out.print("[you] ");
-                            String messageSent = sc.nextLine();
-                            dataOut.writeUTF(messageSent);
+                        System.out.print("[you] ");
+                        String messageSent = sc.nextLine();
+                        dataOut.writeUTF(messageSent);
 
-                            if (messageSent.contains("/exit")){
-                                System.exit(0);
-                            }
-
-                        } else {
-                            System.out.println("sendMessageToClient interrupted");
-                            return;
+                        if (messageSent.contains("/exit")){
+                            System.exit(0);
                         }
+
                     } catch (IOException e) {
                         e.printStackTrace();
                         return;
@@ -46,27 +39,20 @@ public class Server {
 
         Thread getMessageFromClient = new Thread(){
             public void run() {
-                boolean done = false;
-                String messageReceived = "";
-
-                while (!done) {
+                while (true) {
                     try {
-                        messageReceived = dataIn.readUTF();
-                        System.out.println("\r[" + hostName + "] " + messageReceived);
                         System.out.print("[you] ");
+                        String messageReceived = dataIn.readUTF();
+                        System.out.println("\r[" + hostName + "] " + messageReceived);
 
                         if (messageReceived.contains("/exit")){
                             System.exit(0);
-                            System.out.println("\r " + hostName + " has left the chat.");
-                            sendMessageToClient.interrupt();
-                            return;
                         }
-
                     } catch (IOException e) {
                         e.printStackTrace();
-                        done = true;
                         return;
                     }
+                    // TODO - make this into a method called multiple times
                 }
             }
         };

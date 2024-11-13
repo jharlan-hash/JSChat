@@ -3,33 +3,33 @@ import java.io.*;
 import java.util.Scanner;
 
 public class Client {
-    public static void client_mode (String ip, int port) throws IOException, InterruptedException {
-        Socket socket = new Socket(); // create a new socket
-        Scanner sc = new Scanner(System.in); // for user input
+    public static void clientMode (String ip, int port) throws IOException, InterruptedException {
+        Socket socket = new Socket();
+        Scanner sc = new Scanner(System.in);
 
         socket.connect(new InetSocketAddress(ip, port), 1000); // connect to server with 1000ms timeout
-        System.out.println("Connection successful!");
+        System.out.println("Connection successful!"); 
 
-        DataInputStream dataIn = new DataInputStream(socket.getInputStream()); // for reading data from server
-        DataOutputStream dataOut = new DataOutputStream(socket.getOutputStream()); // for sending data to server
+        DataInputStream dataIn = new DataInputStream(socket.getInputStream()); 
+        DataOutputStream dataOut = new DataOutputStream(socket.getOutputStream()); 
 
-        InetAddress addr = InetAddress.getByName(ip); // get the IP address
-        String hostName = addr.getHostName(); // get the host name from the IP address
+        InetAddress addr = InetAddress.getByName(ip); 
+        String hostName = addr.getHostName(); 
 
 
         Thread sendMessageToServer = new Thread(){ // create a new thread for sending messages to the server
             public void run() {
                 while (true) {
                     try {
-                        System.out.print("[you] ");
+                        System.out.print("[you] "); 
                         String messageSent = sc.nextLine();
-                        dataOut.writeUTF(messageSent);
+                        dataOut.writeUTF(messageSent); 
 
-                        if (messageSent.contains("/exit")){
-                            System.exit(0);
+                        if (messageSent.contains("/exit")){ // if the USER types /exit, exit the program
+                            System.exit(0); 
                         }
-                    } catch (Exception e) {
-                        e.printStackTrace();
+                    } catch (Exception e) { 
+                        e.printStackTrace(); 
                         return;
                     }
                 }
@@ -38,15 +38,11 @@ public class Client {
 
         Thread getMessageFromServer = new Thread(){
             public void run() {
-                boolean done = false;
-                String messageReceived = "";
-
-                while (!done) {
+                while (true) {
                     try {
-                        messageReceived = dataIn.readUTF();
+                        String messageReceived = dataIn.readUTF();
                         System.out.println("\r[" + hostName + "] " + messageReceived);
                         System.out.print("[you] ");
-                        
 
                         if (messageReceived.contains("/exit")){
                             System.exit(0);
