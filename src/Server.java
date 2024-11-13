@@ -27,9 +27,13 @@ public class Server {
                             System.out.print("[you] ");
                             String messageSent = sc.nextLine();
                             dataOut.writeUTF(messageSent);
+
+                            if (messageSent.contains("/exit")){
+                                System.exit(0);
+                            }
+
                         } else {
                             System.out.println("sendMessageToClient interrupted");
-                            done = true;
                             return;
                         }
                     } catch (IOException e) {
@@ -47,11 +51,12 @@ public class Server {
 
                 while (!done) {
                     try {
-                        if (!messageReceived.contains("/exit")){
-                            messageReceived = dataIn.readUTF();
-                            System.out.println("\r[" + hostName + "] " + messageReceived);
-                            System.out.print("[you] ");
-                        } else {
+                        messageReceived = dataIn.readUTF();
+                        System.out.println("\r[" + hostName + "] " + messageReceived);
+                        System.out.print("[you] ");
+
+                        if (messageReceived.contains("/exit")){
+                            System.exit(0);
                             System.out.println("\r " + hostName + " has left the chat.");
                             sendMessageToClient.interrupt();
                             return;

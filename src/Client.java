@@ -4,35 +4,31 @@ import java.util.Scanner;
 
 public class Client {
     public static void client_mode (String ip, int port) throws IOException, InterruptedException {
-        Socket socket = new Socket();
-        Scanner sc = new Scanner(System.in);
+        Socket socket = new Socket(); // create a new socket
+        Scanner sc = new Scanner(System.in); // for user input
 
-        socket.connect(new InetSocketAddress(ip, port), 1000);
+        socket.connect(new InetSocketAddress(ip, port), 1000); // connect to server with 1000ms timeout
         System.out.println("Connection successful!");
 
-        DataInputStream dataIn = new DataInputStream(socket.getInputStream());
-        DataOutputStream dataOut = new DataOutputStream(socket.getOutputStream());
+        DataInputStream dataIn = new DataInputStream(socket.getInputStream()); // for reading data from server
+        DataOutputStream dataOut = new DataOutputStream(socket.getOutputStream()); // for sending data to server
 
-        InetAddress addr = InetAddress.getByName(ip);
-        String hostName = addr.getHostName();
+        InetAddress addr = InetAddress.getByName(ip); // get the IP address
+        String hostName = addr.getHostName(); // get the host name from the IP address
 
 
-        Thread sendMessageToServer = new Thread(){
+        Thread sendMessageToServer = new Thread(){ // create a new thread for sending messages to the server
             public void run() {
-                boolean done = false;
-
-                while (!done) {
+                while (true) {
                     try {
-                        if (!Thread.interrupted()){
-                            String messageSent = sc.nextLine();
-                            dataOut.writeUTF(messageSent);
-                            System.out.print("[you] ");
-                        } else {
-                            System.out.println("sendMessageToServer interrupted");
-                            done = true;
-                            return;
+                        System.out.print("[you] ");
+                        String messageSent = sc.nextLine();
+                        dataOut.writeUTF(messageSent);
+
+                        if (messageSent.contains("/exit")){
+                            System.exit(0);
                         }
-                    } catch (IOException e) {
+                    } catch (Exception e) {
                         e.printStackTrace();
                         return;
                     }
@@ -47,17 +43,15 @@ public class Client {
 
                 while (!done) {
                     try {
+                        messageReceived = dataIn.readUTF();
+                        System.out.println("\r[" + hostName + "] " + messageReceived);
+                        System.out.print("[you] ");
+                        
 
-                        if (!messageReceived.contains("/exit")){
-                            System.out.print("[you] ");
-                            messageReceived = dataIn.readUTF();
-                            System.out.println("\r[" + hostName + "] " + messageReceived);
-                        } else {
-                            System.out.print("\r " + hostName + " has left the chat.");
-                            sendMessageToServer.interrupt();
-                            return;
+                        if (messageReceived.contains("/exit")){
+                            System.exit(0);
                         }
-                    } catch (IOException e) {
+                    } catch (Exception e) {
                         e.printStackTrace();
                         return;
                     }
