@@ -10,16 +10,32 @@ public class Server {
         Scanner sc = new Scanner(System.in);
 
         System.out.println("Listening for clients...");
-        Socket clientSocket = serverSocket.accept();
+        Socket clientSocket = serverSocket.accept(); 
+        Socket clientSocketTwo = serverSocket.accept(); 
 
         DataInputStream dataIn = new DataInputStream(clientSocket.getInputStream());
+        DataInputStream dataInTwo = new DataInputStream(clientSocketTwo.getInputStream());
         DataOutputStream dataOut = new DataOutputStream(clientSocket.getOutputStream());
+        DataOutputStream dataOutTwo = new DataOutputStream(clientSocketTwo.getOutputStream());
 
         Thread sendMessageToClient = new Thread(){
             public void run() {
                 while (true) {
                     try {
-                        JarDrop.sendMessage(dataOut, sc);
+                        JarDrop.sendMessage(dataOut, sc); 
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        return;
+                    }
+                }
+            }
+        };
+
+        Thread sendMessageToClientTwo = new Thread(){
+            public void run() {
+                while (true) {
+                    try {
+                        JarDrop.sendMessage(dataOutTwo, sc); 
                     } catch (IOException e) {
                         e.printStackTrace();
                         return;
@@ -32,7 +48,22 @@ public class Server {
             public void run() {
                 while (true) {
                     try {
-                        JarDrop.getMessage(dataIn, ip);
+                        System.out.println("\r[CLIENT ONE] " + JarDrop.getMessage(dataIn, ip));
+                        System.out.print(JarDrop.USER_PROMPT);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        return;
+                    }
+                }
+            }
+        };
+
+        Thread getMessageFromClientTwo = new Thread(){
+            public void run() {
+                while (true) {
+                    try {
+                        System.out.println("\r[CLIENT TWO] " + JarDrop.getMessage(dataInTwo, ip));
+                        System.out.print(JarDrop.USER_PROMPT);
                     } catch (IOException e) {
                         e.printStackTrace();
                         return;
@@ -42,10 +73,14 @@ public class Server {
         };
 
         getMessageFromClient.start();
+        getMessageFromClientTwo.start();
         sendMessageToClient.start();
+        sendMessageToClientTwo.start();
 
         getMessageFromClient.join();
+        getMessageFromClientTwo.join();
         sendMessageToClient.join();
+        sendMessageToClientTwo.join();
 
         dataIn.close();
         dataOut.close();

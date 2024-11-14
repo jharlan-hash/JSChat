@@ -1,4 +1,4 @@
-/* Client.java */
+/* Server.java */
 
 import java.io.*;
 import java.net.*;
@@ -32,7 +32,8 @@ public class Client {
             public void run() {
                 while (true) {
                     try {
-                        JarDrop.getMessage(dataIn, ip);
+                        System.out.println(JarDrop.getMessage(dataIn, ip)); // get message from server
+                        System.out.println(JarDrop.USER_PROMPT);
                     } catch (Exception e) {
                         e.printStackTrace();
                         return;

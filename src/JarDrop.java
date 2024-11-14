@@ -7,8 +7,8 @@ import java.io.DataInputStream;
 import java.net.InetAddress;
 
 public class JarDrop {
-    private static final String USER_PROMPT = "[you] ";
-    private static final String EXIT_MESSAGE = "/exit";
+    public static final String USER_PROMPT = "[you] ";
+    public static final String EXIT_MESSAGE = "/exit";
 
     public static void main (String[] args) throws IOException, InterruptedException {
         String mode = "";
@@ -43,6 +43,7 @@ public class JarDrop {
     public static void sendMessage(DataOutputStream dataOut, Scanner sc) throws IOException {
         System.out.print(USER_PROMPT);
         String messageSent = sc.nextLine();
+
         if (messageSent.equals(EXIT_MESSAGE)){
             shutdown(dataOut, sc);
         }
@@ -52,7 +53,7 @@ public class JarDrop {
         return;
     }
 
-    public static void getMessage(DataInputStream dataIn, String ip) throws IOException {
+    public static String getMessage(DataInputStream dataIn, String ip) throws IOException {
         InetAddress addr = InetAddress.getByName(ip);
         String hostName = addr.getHostName();
         String messageReceived;
@@ -62,20 +63,20 @@ public class JarDrop {
         } catch (IOException e) {
             System.out.println("Connection closed by server.");
             shutdown(dataIn);
-            return;
+            return "";
         }         
 
-        System.out.println("\r[" + hostName + "] " + messageReceived);
-        System.out.print(USER_PROMPT);
+        // messageReceived = "\r[" + hostName + "] " + messageReceived;
 
         if (messageReceived.equals(EXIT_MESSAGE)){
             shutdown();
         }
 
-        return;
+        return messageReceived;
     }
 
     public static void shutdown(DataInputStream dataIn, DataOutputStream dataOut, Scanner sc) throws IOException { dataIn.close(); dataOut.close(); sc.close(); System.exit(0); }
+    public static void shutdown(DataInputStream dataIn, DataInputStream dataInTwo) throws IOException { dataIn.close(); dataInTwo.close(); System.exit(0); }
     public static void shutdown(DataInputStream dataIn, DataOutputStream dataOut) throws IOException { dataIn.close(); dataOut.close(); System.exit(0); }
     public static void shutdown(DataOutputStream dataOut, Scanner sc) throws IOException { dataOut.close(); sc.close(); System.exit(0); }
     public static void shutdown(DataInputStream dataIn) throws IOException { dataIn.close(); System.exit(0); }
@@ -84,5 +85,3 @@ public class JarDrop {
     public static void shutdown() { System.exit(0); }
 
 }
-
-
