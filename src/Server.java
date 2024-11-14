@@ -32,7 +32,7 @@ public class Server {
             public void run() {
                 while (true) {
                     try {
-                        dataOutTwo.writeUTF("\r[" + hostName + "] " + JarDrop.getMessage(dataIn).strip());
+                        dataOutTwo.writeUTF("\r[" + hostName + "] " + chatUtils.getMessage(dataIn).strip());
                     } catch (IOException e) {
                         e.printStackTrace();
                         return;
@@ -45,7 +45,7 @@ public class Server {
             public void run() {
                 while (true) {
                     try {
-                        dataOut.writeUTF("\r[" + hostNameTwo + "] " + JarDrop.getMessage(dataInTwo).strip());
+                        dataOut.writeUTF("\r[" + hostNameTwo + "] " + chatUtils.getMessage(dataInTwo).strip());
                     } catch (IOException e) {
                         e.printStackTrace();
                         return;

@@ -1,4 +1,4 @@
-/* JarDrop.java */
+/* chatUtils.java */
 
 import java.io.IOException;
 import java.util.Scanner;
@@ -8,7 +8,7 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 
 
-public class JarDrop {
+public class chatUtils {
     public static final String USER_PROMPT = "[you] ";
     public static final String EXIT_MESSAGE = "/exit";
     public static final String NULL_STRING = "";

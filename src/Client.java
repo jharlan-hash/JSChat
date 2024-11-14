@@ -22,7 +22,7 @@ public class Client {
             public void run() {
                 while (true) {
                     try {
-                        JarDrop.sendMessage(dataOut, sc); // send message to server
+                        chatUtils.sendMessage(dataOut, sc); // send message to server
                     } catch (Exception e) { 
                         e.printStackTrace();
                         return;
@@ -35,8 +35,8 @@ public class Client {
             public void run() {
                 while (true) {
                     try {
-                        System.out.println(JarDrop.getMessage(dataIn)); // get message from server
-                        System.out.print(JarDrop.USER_PROMPT);
+                        System.out.println(chatUtils.getMessage(dataIn)); // get message from server
+                        System.out.print(chatUtils.USER_PROMPT);
                     } catch (Exception e) {
                         e.printStackTrace();
                         return;
