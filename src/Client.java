@@ -33,7 +33,7 @@ public class Client {
                 while (true) {
                     try {
                         System.out.println(JarDrop.getMessage(dataIn, ip)); // get message from server
-                        System.out.println(JarDrop.USER_PROMPT);
+                        System.out.print(JarDrop.USER_PROMPT);
                     } catch (Exception e) {
                         e.printStackTrace();
                         return;

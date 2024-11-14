@@ -18,38 +18,11 @@ public class Server {
         DataOutputStream dataOut = new DataOutputStream(clientSocket.getOutputStream());
         DataOutputStream dataOutTwo = new DataOutputStream(clientSocketTwo.getOutputStream());
 
-        Thread sendMessageToClient = new Thread(){
-            public void run() {
-                while (true) {
-                    try {
-                        JarDrop.sendMessage(dataOut, sc); 
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                        return;
-                    }
-                }
-            }
-        };
-
-        Thread sendMessageToClientTwo = new Thread(){
-            public void run() {
-                while (true) {
-                    try {
-                        JarDrop.sendMessage(dataOutTwo, sc); 
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                        return;
-                    }
-                }
-            }
-        };
-
         Thread getMessageFromClient = new Thread(){
             public void run() {
                 while (true) {
                     try {
-                        System.out.println("\r[CLIENT ONE] " + JarDrop.getMessage(dataIn, ip));
-                        System.out.print(JarDrop.USER_PROMPT);
+                        dataOutTwo.writeUTF("\r[CLIENT ONE] " + JarDrop.getMessage(dataIn, ip));
                     } catch (IOException e) {
                         e.printStackTrace();
                         return;
@@ -62,8 +35,7 @@ public class Server {
             public void run() {
                 while (true) {
                     try {
-                        System.out.println("\r[CLIENT TWO] " + JarDrop.getMessage(dataInTwo, ip));
-                        System.out.print(JarDrop.USER_PROMPT);
+                        dataOut.writeUTF("\r[CLIENT TWO] " + JarDrop.getMessage(dataInTwo, ip).strip());
                     } catch (IOException e) {
                         e.printStackTrace();
                         return;
@@ -74,13 +46,9 @@ public class Server {
 
         getMessageFromClient.start();
         getMessageFromClientTwo.start();
-        sendMessageToClient.start();
-        sendMessageToClientTwo.start();
 
         getMessageFromClient.join();
         getMessageFromClientTwo.join();
-        sendMessageToClient.join();
-        sendMessageToClientTwo.join();
 
         dataIn.close();
         dataOut.close();

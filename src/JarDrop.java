@@ -25,7 +25,7 @@ public class JarDrop {
                 System.exit(1);
             }
         } else {
-            System.out.println("Usage: java JarDrop <mode> <ip> <port>");
+            System.out.println("Usage: ./build.sh <mode> <ip> <port>");
             System.exit(1);
         }
 
@@ -75,13 +75,8 @@ public class JarDrop {
         return messageReceived;
     }
 
-    public static void shutdown(DataInputStream dataIn, DataOutputStream dataOut, Scanner sc) throws IOException { dataIn.close(); dataOut.close(); sc.close(); System.exit(0); }
-    public static void shutdown(DataInputStream dataIn, DataInputStream dataInTwo) throws IOException { dataIn.close(); dataInTwo.close(); System.exit(0); }
-    public static void shutdown(DataInputStream dataIn, DataOutputStream dataOut) throws IOException { dataIn.close(); dataOut.close(); System.exit(0); }
     public static void shutdown(DataOutputStream dataOut, Scanner sc) throws IOException { dataOut.close(); sc.close(); System.exit(0); }
     public static void shutdown(DataInputStream dataIn) throws IOException { dataIn.close(); System.exit(0); }
-    public static void shutdown(DataOutputStream dataOut) throws IOException { dataOut.close(); System.exit(0); }
-    public static void shutdown(Scanner sc) { sc.close(); System.exit(0); }
     public static void shutdown() { System.exit(0); }
 
 }
