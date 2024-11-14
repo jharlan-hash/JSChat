@@ -18,26 +18,32 @@ public class Client {
         DataInputStream dataIn = new DataInputStream(socket.getInputStream()); 
         DataOutputStream dataOut = new DataOutputStream(socket.getOutputStream());
 
+        Thread getMessageFromServer = createThread(dataIn, dataOut, sc, "get");
+        Thread sendMessageToServer = createThread(dataIn, dataOut, sc, "send");
 
-        Thread sendMessageToServer = new Thread(){ // create a new thread for sending messages to the server
+        getMessageFromServer.join();
+        sendMessageToServer.join();
+
+        dataIn.close();
+        dataOut.close();
+        sc.close();
+        socket.close();
+    }
+
+    public static Thread createThread(DataInputStream dataIn, DataOutputStream dataOut, Scanner sc, String getOrSend) {
+        Thread getMessageFromClient = new Thread(){
             public void run() {
                 while (true) {
                     try {
-                        chatUtils.sendMessage(dataOut, sc); // send message to server
-                    } catch (Exception e) { 
-                        e.printStackTrace();
-                        return;
-                    }
-                }
-            }
-        };
-
-        Thread getMessageFromServer = new Thread(){
-            public void run() {
-                while (true) {
-                    try {
-                        System.out.println(chatUtils.getMessage(dataIn)); // get message from server
-                        System.out.print(chatUtils.USER_PROMPT);
+                        if (getOrSend.equals("send")) {
+                            chatUtils.sendMessage(dataOut, sc);
+                        } else if (getOrSend.equals("get")) {
+                            System.out.println(chatUtils.getMessage(dataIn));
+                            System.out.print(chatUtils.USER_PROMPT);
+                        } else {
+                            System.out.println("Invalid getOrSend argument.");
+                            return;
+                        }
                     } catch (Exception e) {
                         e.printStackTrace();
                         return;
@@ -46,14 +52,8 @@ public class Client {
             }
         };
 
-        getMessageFromServer.start();
-        sendMessageToServer.start();
-        getMessageFromServer.join();
-        sendMessageToServer.join();
+        getMessageFromClient.start();
 
-        dataIn.close();
-        dataOut.close();
-        sc.close();
-        socket.close();
+        return getMessageFromClient;
     }
 }

@@ -31,9 +31,6 @@ public class Server {
         Thread getMessageFromFirstClient = createThread(firstClientSocket, firstDataIn, secondDataOut, firstClientHostName);
         Thread getMessageFromSecondClient = createThread(secondClientSocket, secondDataIn, firstDataOut, secondClientHostName);
 
-        getMessageFromFirstClient.start();
-        getMessageFromSecondClient.start();
-
         getMessageFromFirstClient.join();
         getMessageFromSecondClient.join();
 
@@ -53,6 +50,8 @@ public class Server {
                 }
             }
         };
+
+        getMessageFromClient.start();
 
         return getMessageFromClient;
     }
