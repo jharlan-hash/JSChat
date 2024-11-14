@@ -4,20 +4,32 @@ import java.io.IOException;
 import java.util.Scanner;
 import java.io.DataOutputStream;
 import java.io.DataInputStream;
+import java.net.DatagramSocket;
 import java.net.InetAddress;
+
 
 public class JarDrop {
     public static final String USER_PROMPT = "[you] ";
     public static final String EXIT_MESSAGE = "/exit";
+    public static final String NULL_STRING = "";
 
     public static void main (String[] args) throws IOException, InterruptedException {
-        String mode = "";
-        String ip = "";
+        String mode = NULL_STRING;
+        String ip = NULL_STRING;
         int port = -1;
 
         if (args.length == 3){
             mode = args[0];
-            ip = args[1];
+            if (args[1].equals("self")) {
+                try(final DatagramSocket socket = new DatagramSocket()){
+                    socket.connect(InetAddress.getByName("8.8.8.8"), 10002);
+                    ip = socket.getLocalAddress().getHostAddress();
+                }
+                System.out.println("IP Address: " + ip);
+            } else {
+                ip = args[1];
+            }
+
             try {
                 port = Integer.parseInt(args[2]);
             } catch(NumberFormatException e) {
@@ -30,11 +42,9 @@ public class JarDrop {
         }
 
         if (mode.equals("con")){
-            System.out.println("Acting as a client");
             Client.clientMode(ip, port);
         } else if (mode.equals("srv")){
-            System.out.println("Acting as a server");
-            Server.serverMode(ip, port);
+            Server.serverMode(port);
         } else {
             System.out.println("Please enter a valid mode (con or srv)");
         }
@@ -53,9 +63,7 @@ public class JarDrop {
         return;
     }
 
-    public static String getMessage(DataInputStream dataIn, String ip) throws IOException {
-        InetAddress addr = InetAddress.getByName(ip);
-        String hostName = addr.getHostName();
+    public static String getMessage(DataInputStream dataIn) throws IOException {
         String messageReceived;
 
         try {
@@ -63,7 +71,7 @@ public class JarDrop {
         } catch (IOException e) {
             System.out.println("Connection closed by server.");
             shutdown(dataIn);
-            return "";
+            return NULL_STRING;
         }         
 
         // messageReceived = "\r[" + hostName + "] " + messageReceived;
