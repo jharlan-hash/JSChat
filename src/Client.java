@@ -18,6 +18,7 @@ public class Client {
         DataInputStream dataIn = new DataInputStream(socket.getInputStream()); 
         DataOutputStream dataOut = new DataOutputStream(socket.getOutputStream());
 
+
         Thread sendMessageToServer = new Thread(){ // create a new thread for sending messages to the server
             public void run() {
                 while (true) {
