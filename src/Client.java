@@ -1,5 +1,7 @@
-import java.net.*;
+/* Client.java */
+
 import java.io.*;
+import java.net.*;
 import java.util.Scanner;
 
 public class Client {
@@ -11,25 +13,15 @@ public class Client {
         System.out.println("Connection successful!"); 
 
         DataInputStream dataIn = new DataInputStream(socket.getInputStream()); 
-        DataOutputStream dataOut = new DataOutputStream(socket.getOutputStream()); 
-
-        InetAddress addr = InetAddress.getByName(ip); 
-        String hostName = addr.getHostName(); 
-
+        DataOutputStream dataOut = new DataOutputStream(socket.getOutputStream());
 
         Thread sendMessageToServer = new Thread(){ // create a new thread for sending messages to the server
             public void run() {
                 while (true) {
                     try {
-                        System.out.print("[you] "); 
-                        String messageSent = sc.nextLine();
-                        dataOut.writeUTF(messageSent); 
-
-                        if (messageSent.contains("/exit")){ // if the USER types /exit, exit the program
-                            System.exit(0); 
-                        }
+                        JarDrop.sendMessage(dataOut, sc); // send message to server
                     } catch (Exception e) { 
-                        e.printStackTrace(); 
+                        e.printStackTrace();
                         return;
                     }
                 }
@@ -40,13 +32,7 @@ public class Client {
             public void run() {
                 while (true) {
                     try {
-                        String messageReceived = dataIn.readUTF();
-                        System.out.println("\r[" + hostName + "] " + messageReceived);
-                        System.out.print("[you] ");
-
-                        if (messageReceived.contains("/exit")){
-                            System.exit(0);
-                        }
+                        JarDrop.getMessage(dataIn, ip);
                     } catch (Exception e) {
                         e.printStackTrace();
                         return;
@@ -62,7 +48,7 @@ public class Client {
 
         dataIn.close();
         dataOut.close();
-        socket.close();
         sc.close();
+        socket.close();
     }
 }

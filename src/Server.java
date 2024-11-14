@@ -1,3 +1,5 @@
+/* Server.java */
+
 import java.net.*;
 import java.io.*;
 import java.util.Scanner;
@@ -13,22 +15,11 @@ public class Server {
         DataInputStream dataIn = new DataInputStream(clientSocket.getInputStream());
         DataOutputStream dataOut = new DataOutputStream(clientSocket.getOutputStream());
 
-        InetAddress addr = InetAddress.getByName(ip);
-        String hostName = addr.getHostName();
-
-
         Thread sendMessageToClient = new Thread(){
             public void run() {
                 while (true) {
                     try {
-                        System.out.print("[you] ");
-                        String messageSent = sc.nextLine();
-                        dataOut.writeUTF(messageSent);
-
-                        if (messageSent.contains("/exit")){
-                            System.exit(0);
-                        }
-
+                        JarDrop.sendMessage(dataOut, sc);
                     } catch (IOException e) {
                         e.printStackTrace();
                         return;
@@ -41,18 +32,11 @@ public class Server {
             public void run() {
                 while (true) {
                     try {
-                        System.out.print("[you] ");
-                        String messageReceived = dataIn.readUTF();
-                        System.out.println("\r[" + hostName + "] " + messageReceived);
-
-                        if (messageReceived.contains("/exit")){
-                            System.exit(0);
-                        }
+                        JarDrop.getMessage(dataIn, ip);
                     } catch (IOException e) {
                         e.printStackTrace();
                         return;
                     }
-                    // TODO - make this into a method called multiple times
                 }
             }
         };
@@ -65,8 +49,8 @@ public class Server {
 
         dataIn.close();
         dataOut.close();
+        sc.close();
         clientSocket.close();
         serverSocket.close();
-        sc.close();
     }
 }
