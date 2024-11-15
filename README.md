@@ -1,4 +1,5 @@
-# Terminal Chat Application
+# JSChat
+**J**ava/**J**ack **S**overn **C**hat
 
 A simple terminal-based chat application that enables two clients to communicate through a server.
 
