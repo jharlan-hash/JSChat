@@ -12,7 +12,7 @@ public class Client {
         Socket socket = new Socket();
         Scanner sc = new Scanner(System.in);
 
-        socket.connect(new InetSocketAddress(ip, port), 100000); // connect to server with 10000ms timeout
+        socket.connect(new InetSocketAddress(ip, port), 0); // connect to server with no timeout
         System.out.println("Connection successful!"); 
 
         DataInputStream dataIn = new DataInputStream(socket.getInputStream()); 
