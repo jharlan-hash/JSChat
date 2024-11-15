@@ -6,13 +6,13 @@ A simple terminal-based chat application that enables two clients to communicate
 
 ```bash
 # Start the server (port 8080)
-./build.sh srv 0.0.0.0 8080
+./build.sh srv localhost 8080
 
 # Connect first client
-./build.sh con 192.168.1.100 8080
+./build.sh con localhost 8080
 
 # Connect second client
-./build.sh con 192.168.1.100 8080
+./build.sh con localhost 8080
 ```
 
 ## Usage
@@ -49,7 +49,7 @@ A simple terminal-based chat application that enables two clients to communicate
 
 - Server supports two simultaneous clients
 - Real-time chat between connected clients
-- Simple command `/exit` to disconnect
+- Use `/exit` to disconnect
 - Automatic IP detection with `self` parameter
 - Connection status notifications
 
@@ -62,10 +62,12 @@ A simple terminal-based chat application that enables two clients to communicate
 5. Messages show sender's hostname
 6. Either client can exit with `/exit`
 
-## Requirements
-
-- Java Runtime Environment (JRE)
-- Terminal/Command Prompt
+## Planned Features
+- **End-to-end encryption**
+- Better user interface
+- Something better than build.sh
+- Be able to connect more than two clients
+- Let the server stay open after clients disconnect
 
 ## Notes
 
