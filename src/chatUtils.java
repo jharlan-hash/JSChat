@@ -73,7 +73,7 @@ public class chatUtils {
 
     public static String getLocalIP() {
         try(final DatagramSocket socket = new DatagramSocket()){
-            socket.connect(InetAddress.getByName("8.8.8.8"), 10002);
+            socket.connect(InetAddress.getByName("8.8.8.8"), 0);
             return socket.getLocalAddress().getHostAddress();
         } catch (Exception e) {
             e.printStackTrace();

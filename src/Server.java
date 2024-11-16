@@ -12,18 +12,17 @@ public class Server {
         Scanner sc = new Scanner(System.in);
 
         System.out.println("Listening for clients...");
-        System.out.println("Client connected");
         Socket firstClientSocket = serverSocket.accept(); 
         DataInputStream firstDataIn = new DataInputStream(firstClientSocket.getInputStream());
         DataOutputStream firstDataOut = new DataOutputStream(firstClientSocket.getOutputStream());
+        System.out.println("Client connected");
 
 
         Socket secondClientSocket = serverSocket.accept(); 
         System.out.println("Second client connected");
-        firstDataOut.writeUTF("\rClient connected");
+        firstDataOut.writeUTF("\rSecond user connected");
         DataInputStream secondDataIn = new DataInputStream(secondClientSocket.getInputStream());
         DataOutputStream secondDataOut = new DataOutputStream(secondClientSocket.getOutputStream());
-
 
         String firstClientHostName = firstClientSocket.getInetAddress().getHostName();
         String secondClientHostName = secondClientSocket.getInetAddress().getHostName();
@@ -48,6 +47,7 @@ public class Server {
                         String message = chatUtils.getMessage(dataIn);
 
                         if (message == null || message.equals(chatUtils.EXIT_MESSAGE)){
+                            dataOut.writeUTF("\r{Server} " + hostname + " has left the chat - use /exit to leave");
                             break;
                         }
 
