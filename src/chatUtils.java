@@ -20,15 +20,10 @@ public class chatUtils {
         if (args.length == 3){
             mode = args[0];
             if (args[1].equals("self")) {
-                try(final DatagramSocket socket = new DatagramSocket()){
-                    socket.connect(InetAddress.getByName("8.8.8.8"), 10002);
-                    ip = socket.getLocalAddress().getHostAddress();
-                }
-                System.out.println("IP Address: " + ip);
+                System.out.println("IP Address: " + getLocalIP());
             } else {
                 ip = args[1];
             }
-
             try {
                 port = Integer.parseInt(args[2]);
             } catch(NumberFormatException e) {
@@ -40,12 +35,16 @@ public class chatUtils {
             System.exit(1);
         }
 
-        if (mode.equals("con")){
-            Client.clientMode(ip, port);
-        } else if (mode.equals("srv")){
-            Server.serverMode(port);
-        } else {
-            System.out.println("Please enter a valid mode (con or srv)");
+        switch (mode) {
+            case "con":
+                Client.clientMode(ip, port);
+                break;
+            case "srv":
+                Server.serverMode(port);
+                break;
+            default:
+                System.out.println("Please enter a valid mode (con or srv)");
+                break;
         }
     }
 
@@ -68,6 +67,16 @@ public class chatUtils {
         }         
 
         return messageReceived;
+    }
+
+    public static String getLocalIP() {
+        try(final DatagramSocket socket = new DatagramSocket()){
+            socket.connect(InetAddress.getByName("8.8.8.8"), 10002);
+            return socket.getLocalAddress().getHostAddress();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     public static void shutdown(DataOutputStream dataOut, Scanner sc) throws IOException { dataOut.close(); sc.close(); System.exit(0); }
