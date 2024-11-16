@@ -11,11 +11,10 @@ import java.net.InetAddress;
 public class chatUtils {
     public static final String USER_PROMPT = "[you] ";
     public static final String EXIT_MESSAGE = "/exit";
-    public static final String NULL_STRING = "";
 
     public static void main (String[] args) throws IOException, InterruptedException {
-        String mode = NULL_STRING;
-        String ip = NULL_STRING;
+        String mode = null;
+        String ip = null;
         int port = -1;
 
         if (args.length == 3){
@@ -50,17 +49,12 @@ public class chatUtils {
         }
     }
 
-    public static void sendMessage(DataOutputStream dataOut, Scanner sc) throws IOException {
+    public static String sendMessage(DataOutputStream dataOut, Scanner sc) throws IOException {
         System.out.print(USER_PROMPT);
         String messageSent = sc.nextLine();
-
-        if (messageSent.equals(EXIT_MESSAGE)){
-            shutdown(dataOut, sc);
-        }
-
         dataOut.writeUTF(messageSent);
 
-        return;
+        return messageSent;
     }
 
     public static String getMessage(DataInputStream dataIn) throws IOException {
@@ -70,15 +64,8 @@ public class chatUtils {
             messageReceived = dataIn.readUTF();
         } catch (IOException e) {
             System.out.println("Connection closed by server.");
-            shutdown(dataIn);
-            return NULL_STRING;
+            return null;
         }         
-
-        // messageReceived = "\r[" + hostName + "] " + messageReceived;
-
-        if (messageReceived.equals(EXIT_MESSAGE)){
-            shutdown();
-        }
 
         return messageReceived;
     }

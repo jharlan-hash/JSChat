@@ -1,4 +1,4 @@
-/* Server.java */
+/* Client.java */
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -12,8 +12,8 @@ public class Client {
         Socket socket = new Socket();
         Scanner sc = new Scanner(System.in);
 
-        socket.connect(new InetSocketAddress(ip, port), 0); // connect to server with no timeout
-        System.out.println("Connection successful!"); 
+        socket.connect(new InetSocketAddress(ip, port), 0);
+        System.out.println("Connection successful!");
 
         DataInputStream dataIn = new DataInputStream(socket.getInputStream()); 
         DataOutputStream dataOut = new DataOutputStream(socket.getOutputStream());
@@ -21,27 +21,43 @@ public class Client {
         Thread getMessageFromServer = createThread(dataIn, dataOut, sc, "get");
         Thread sendMessageToServer = createThread(dataIn, dataOut, sc, "send");
 
+        getMessageFromServer.start();
+        sendMessageToServer.start();
+
         getMessageFromServer.join();
         sendMessageToServer.join();
 
+        System.out.println("Shutting down client...");
         dataIn.close();
         dataOut.close();
         sc.close();
         socket.close();
+        System.exit(0);
     }
 
-    public static Thread createThread(DataInputStream dataIn, DataOutputStream dataOut, Scanner sc, String getOrSend) {
+    public static Thread createThread(DataInputStream dataIn, DataOutputStream dataOut, Scanner sc, String mode) {
         Thread getMessageFromClient = new Thread(){
             public void run() {
                 while (true) {
                     try {
-                        if (getOrSend.equals("send")) {
-                            chatUtils.sendMessage(dataOut, sc);
-                        } else if (getOrSend.equals("get")) {
-                            System.out.println(chatUtils.getMessage(dataIn));
+                        if (mode.equals("send")) {
+                            String message = chatUtils.sendMessage(dataOut, sc);
+
+                            if (message.equals(chatUtils.EXIT_MESSAGE)){
+                                break;
+                            }
+
+                        } else if (mode.equals("get")) {
+                            String message = chatUtils.getMessage(dataIn);
+
+                            if (message == null || message.equals(chatUtils.EXIT_MESSAGE)){
+                                break;
+                            }
+
+                            System.out.println(message);
                             System.out.print(chatUtils.USER_PROMPT);
                         } else {
-                            System.out.println("Invalid getOrSend argument.");
+                            System.out.println("Invalid mode argument.");
                             return;
                         }
                     } catch (Exception e) {
@@ -51,8 +67,6 @@ public class Client {
                 }
             }
         };
-
-        getMessageFromClient.start();
 
         return getMessageFromClient;
     }
