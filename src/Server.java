@@ -45,13 +45,16 @@ public class Server {
                 while (true) {
                     try {
                         String message = chatUtils.getMessage(dataIn);
+                        
 
                         if (message == null || message.equals(chatUtils.EXIT_MESSAGE)){
                             dataOut.writeUTF("\r{Server} " + hostname + " has left the chat - use /exit to leave");
                             break;
                         }
 
-                        dataOut.writeUTF("\r[" + hostname + "] " + message);
+                        message = "\r[" + hostname + "] " + message;
+                        System.out.println(message);
+                        dataOut.writeUTF(message);
                     } catch (IOException e) {
                         e.printStackTrace();
                         return;
@@ -73,7 +76,6 @@ public class Server {
         Socket secondClientSocket, 
         ServerSocket serverSocket
     ) throws IOException {
-        System.out.println("Shutting down server...");
         closeQuietly(firstDataIn);
         closeQuietly(firstDataOut);
         closeQuietly(secondDataIn);

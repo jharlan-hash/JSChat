@@ -27,7 +27,6 @@ public class Client {
         getMessageFromServer.join();
         sendMessageToServer.join();
 
-        System.out.println("Shutting down client...");
         dataIn.close();
         dataOut.close();
         sc.close();
