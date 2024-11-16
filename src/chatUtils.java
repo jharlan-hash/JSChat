@@ -13,26 +13,28 @@ public class chatUtils {
     public static final String EXIT_MESSAGE = "/exit";
 
     public static void main (String[] args) throws IOException, InterruptedException {
-        String mode = null;
-        String ip = null;
-        int port = -1;
+        String mode;
+        String ip;
+        int port;
 
-        if (args.length == 3){
-            mode = args[0];
-            if (args[1].equals("self")) {
-                System.out.println("IP Address: " + getLocalIP());
-            } else {
-                ip = args[1];
-            }
-            try {
-                port = Integer.parseInt(args[2]);
-            } catch(NumberFormatException e) {
-                System.out.println("Please enter a valid port number.");
-                System.exit(1);
-            }
-        } else {
+        if (args.length != 3) {
             System.out.println("Usage: ./build.sh <mode> <ip> <port>");
             System.exit(1);
+        }
+
+        mode = args[0];
+        ip = args[1].equals("self") ? getLocalIP() : args[1];
+
+        try {
+            port = Integer.parseInt(args[2]);
+        } catch (NumberFormatException e) {
+            System.out.println("Please enter a valid port number.");
+            port = -1;
+            System.exit(1);
+        }
+
+        if (args[1].equals("self")) {
+            System.out.println("IP Address: " + ip);
         }
 
         switch (mode) {
