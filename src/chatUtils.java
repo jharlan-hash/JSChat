@@ -53,6 +53,7 @@ public class ChatUtils {
     public static String sendMessage(DataOutputStream dataOut, Scanner sc) throws IOException {
         System.out.print(USER_PROMPT);
         String messageSent = sc.nextLine();
+
         dataOut.writeUTF(messageSent);
 
         return messageSent;

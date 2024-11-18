@@ -52,7 +52,7 @@ public class Server {
                         } else if (message.startsWith(ChatUtils.NICK_MESSAGE)) {
                             String[] messageArray = message.split(" ");
                             for (int i = 0; i < messageArray.length; i++) {
-                                System.out.print("messsageArray[" + i + "]: " + messageArray[i] + " ");
+                                System.out.println("\nmesssageArray[" + i + "]: " + messageArray[i] + " ");
                             }
                         }
 
