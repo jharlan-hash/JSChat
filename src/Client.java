@@ -8,6 +8,7 @@ import java.net.InetSocketAddress;
 import java.util.Scanner;
 
 public class Client {
+
     public static void clientMode (String ip, int port) throws IOException, InterruptedException {
         Socket socket = new Socket();
         Scanner sc = new Scanner(System.in);
@@ -26,6 +27,7 @@ public class Client {
 
         getMessageFromServer.join();
         sendMessageToServer.join();
+
 
         dataIn.close();
         dataOut.close();
