@@ -7,7 +7,6 @@ import java.io.DataInputStream;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 
-
 public class chatUtils {
     public static final String USER_PROMPT = "[you] ";
     public static final String EXIT_MESSAGE = "/exit";
@@ -80,9 +79,4 @@ public class chatUtils {
             return null;
         }
     }
-
-    public static void shutdown(DataOutputStream dataOut, Scanner sc) throws IOException { dataOut.close(); sc.close(); System.exit(0); }
-    public static void shutdown(DataInputStream dataIn) throws IOException { dataIn.close(); System.exit(0); }
-    public static void shutdown() { System.exit(0); }
-
 }
