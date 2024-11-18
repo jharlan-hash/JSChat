@@ -1,4 +1,4 @@
-/* chatUtils.java */
+/* ChatUtils.java */
 
 import java.io.IOException;
 import java.util.Scanner;
@@ -7,9 +7,10 @@ import java.io.DataInputStream;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 
-public class chatUtils {
+public class ChatUtils {
     public static final String USER_PROMPT = "[you] ";
     public static final String EXIT_MESSAGE = "/exit";
+    public static final String NICK_MESSAGE = "/nick";
 
     public static void main (String[] args) throws IOException, InterruptedException {
         String mode;
@@ -70,7 +71,7 @@ public class chatUtils {
         return messageReceived;
     }
 
-    public static String getLocalIP() {
+    private static String getLocalIP() {
         try(final DatagramSocket socket = new DatagramSocket()){
             socket.connect(InetAddress.getByName("8.8.8.8"), 0);
             return socket.getLocalAddress().getHostAddress();

@@ -8,7 +8,6 @@ import java.net.InetSocketAddress;
 import java.util.Scanner;
 
 public class Client {
-
     public static void clientMode (String ip, int port) throws IOException, InterruptedException {
         Socket socket = new Socket();
         Scanner sc = new Scanner(System.in);
@@ -42,21 +41,21 @@ public class Client {
                 while (true) {
                     try {
                         if (mode.equals("send")) {
-                            String message = chatUtils.sendMessage(dataOut, sc);
+                            String message = ChatUtils.sendMessage(dataOut, sc);
 
-                            if (message.equals(chatUtils.EXIT_MESSAGE)){
+                            if (message.equals(ChatUtils.EXIT_MESSAGE)){
                                 break;
                             }
 
                         } else if (mode.equals("get")) {
-                            String message = chatUtils.getMessage(dataIn);
+                            String message = ChatUtils.getMessage(dataIn);
 
-                            if (message == null || message.equals(chatUtils.EXIT_MESSAGE)){
+                            if (message == null || message.equals(ChatUtils.EXIT_MESSAGE)){
                                 break;
                             }
 
                             System.out.println(message);
-                            System.out.print(chatUtils.USER_PROMPT);
+                            System.out.print(ChatUtils.USER_PROMPT);
                         } else {
                             System.out.println("Invalid mode argument.");
                             return;

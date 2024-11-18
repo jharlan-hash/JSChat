@@ -44,12 +44,16 @@ public class Server {
             public void run() {
                 while (true) {
                     try {
-                        String message = chatUtils.getMessage(dataIn);
-                        
+                        String message = ChatUtils.getMessage(dataIn);
 
-                        if (message == null || message.equals(chatUtils.EXIT_MESSAGE)){
-                            dataOut.writeUTF("\r{Server} " + hostname + " has left the chat - use /exit to leave");
-                            break;
+                        switch (message){
+                            case "/exit":
+                                dataOut.writeUTF("\r{Server} " + hostname + " has left the chat - use /exit to leave");
+                                return;
+                            case "/nick":
+                            // TODO implement /nick
+                            default:
+                                break;
                         }
 
                         message = "\r[" + hostname + "] " + message;
