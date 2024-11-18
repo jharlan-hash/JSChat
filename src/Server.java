@@ -45,15 +45,15 @@ public class Server {
                 while (true) {
                     try {
                         String message = ChatUtils.getMessage(dataIn);
-
-                        switch (message){
-                            case "/exit":
-                                dataOut.writeUTF("\r{Server} " + hostname + " has left the chat - use /exit to leave");
-                                return;
-                            case "/nick":
-                            // TODO implement /nick
-                            default:
-                                break;
+                        
+                        if (message == null || message.equals(ChatUtils.EXIT_MESSAGE)){
+                            dataOut.writeUTF("\r{Server} " + hostname + " has left the chat - use /exit to leave");
+                            break;
+                        } else if (message.startsWith(ChatUtils.NICK_MESSAGE)) {
+                            String[] messageArray = message.split(" ");
+                            for (int i = 0; i < messageArray.length; i++) {
+                                System.out.print("messsageArray[" + i + "]: " + messageArray[i] + " ");
+                            }
                         }
 
                         message = "\r[" + hostname + "] " + message;
