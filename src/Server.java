@@ -24,11 +24,8 @@ public class Server {
         DataInputStream secondDataIn = new DataInputStream(secondClientSocket.getInputStream());
         DataOutputStream secondDataOut = new DataOutputStream(secondClientSocket.getOutputStream());
 
-        String firstClientHostName = firstClientSocket.getInetAddress().getHostName();
-        String secondClientHostName = secondClientSocket.getInetAddress().getHostName();
-
-        Thread getMessageFromFirstClient = createThread(firstClientSocket, firstDataIn, secondDataOut, firstClientHostName);
-        Thread getMessageFromSecondClient = createThread(secondClientSocket, secondDataIn, firstDataOut, secondClientHostName);
+        Thread getMessageFromFirstClient = createThread(firstClientSocket, firstDataIn, secondDataOut);
+        Thread getMessageFromSecondClient = createThread(secondClientSocket, secondDataIn, firstDataOut);
 
         getMessageFromFirstClient.start();
         getMessageFromSecondClient.start();
@@ -39,26 +36,31 @@ public class Server {
         shutdown(firstDataIn, firstDataOut, secondDataIn, secondDataOut, sc, firstClientSocket, secondClientSocket, serverSocket);
     }
 
-    public static Thread createThread(Socket clientSocket, DataInputStream dataIn, DataOutputStream dataOut, String hostname) {
+
+
+    private static Thread createThread(Socket clientSocket, DataInputStream dataIn, DataOutputStream dataOut) {
         Thread getMessageFromClient = new Thread(){
+            String hostname = clientSocket.getInetAddress().getHostName();
             public void run() {
                 while (true) {
                     try {
                         String message = ChatUtils.getMessage(dataIn);
-                        
+
+                        //TODO make command checking a separate function
                         if (message == null || message.equals(ChatUtils.EXIT_MESSAGE)){
                             dataOut.writeUTF("\r{Server} " + hostname + " has left the chat - use /exit to leave");
-                            break;
+                            return;
                         } else if (message.startsWith(ChatUtils.NICK_MESSAGE)) {
                             String[] messageArray = message.split(" ");
-                            for (int i = 0; i < messageArray.length; i++) {
-                                System.out.println("\nmesssageArray[" + i + "]: " + messageArray[i] + " ");
-                            }
+                            hostname = messageArray[1];
                         }
 
                         message = "\r[" + hostname + "] " + message;
+
+                        if (!(message.startsWith("\r[" + hostname + "] /"))) { // checking if the message is a command
+                            dataOut.writeUTF(message);
+                        }
                         System.out.println(message);
-                        dataOut.writeUTF(message);
                     } catch (IOException e) {
                         e.printStackTrace();
                         return;
@@ -80,6 +82,7 @@ public class Server {
         Socket secondClientSocket, 
         ServerSocket serverSocket
     ) throws IOException {
+        System.out.println("Shutting down server...");
         closeQuietly(firstDataIn);
         closeQuietly(firstDataOut);
         closeQuietly(secondDataIn);
