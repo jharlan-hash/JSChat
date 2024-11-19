@@ -28,6 +28,7 @@ public class Client {
         sendMessageToServer.join();
 
 
+        System.out.println("Closing connection...");
         dataIn.close();
         dataOut.close();
         sc.close();
