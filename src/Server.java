@@ -46,14 +46,11 @@ public class Server {
                     try {
                         String message = ChatUtils.getMessage(dataIn);
 
-                        //TODO make command checking a separate function
                         if (message == null || message.equals(ChatUtils.EXIT_MESSAGE)){
                             dataOut.writeUTF("\r{Server} " + hostname + " has left the chat - use /exit to leave");
                             return;
-                        } else if (message.startsWith(ChatUtils.NICK_MESSAGE)) {
-                            String[] messageArray = message.split(" ");
-                            hostname = messageArray[1];
                         }
+                        hostname = parseCommands(message, dataOut, clientSocket);
 
                         message = "\r[" + hostname + "] " + message;
 
@@ -70,6 +67,23 @@ public class Server {
         };
 
         return getMessageFromClient;
+    }
+
+    private static String parseCommands(String message, DataOutputStream dataOut , Socket socket) throws IOException {
+        String hostname = socket.getInetAddress().getHostName();
+
+        if (message.startsWith(ChatUtils.NICK_MESSAGE)) {
+            return nickname(hostname, message, socket);
+        }
+
+        return hostname;
+    }
+
+    private static String nickname (String hostname, String message, Socket socket){
+        String[] messageArray = message.split(" ");
+        hostname = messageArray[1];
+
+        return hostname;
     }
 
     private static void shutdown(

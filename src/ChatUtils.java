@@ -39,7 +39,11 @@ public class ChatUtils {
 
         switch (mode) {
             case "con":
+            try {
                 Client.clientMode(ip, port);
+            } catch (IOException e) {
+                System.out.println("Connection failed - make sure the IP and port are correct.");
+            }
                 break;
             case "srv":
                 Server.serverMode(port);
