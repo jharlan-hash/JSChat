@@ -50,6 +50,7 @@ public class Server {
                             dataOut.writeUTF("\r{Server} " + hostname + " has left the chat - use /exit to leave");
                             return;
                         }
+
                         hostname = parseCommands(message, dataOut, clientSocket);
 
                         message = "\r[" + hostname + "] " + message;
