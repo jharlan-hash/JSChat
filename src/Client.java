@@ -14,7 +14,7 @@ import java.util.Scanner;
 public class Client {
     public static void clientMode (String ip, int port) throws Exception {
         Socket socket = new Socket();
-        Scanner sc = new Scanner(System.in);
+        Scanner sc = new Scanner(System.in); 
         KeyPair keypair = RSA.generateRSAKeyPair();
 
         socket.connect(new InetSocketAddress(ip, port), 0);
@@ -25,14 +25,7 @@ public class Client {
 
         dataOut.write(keypair.getPublic().getEncoded()); // send public key to server
 
-        byte[] connectedPublicKeyBytes = new byte[422];
-        for (int p = 0; p < connectedPublicKeyBytes.length; ) {
-            int read = dataIn.read(connectedPublicKeyBytes); // read public key from server
-            if (read == -1) {
-                throw new RuntimeException("Premature end of stream");
-            }
-            p += read;
-        }
+        byte[] connectedPublicKeyBytes = ChatUtils.readPublicKey(dataIn);
         
         KeyFactory keyFactory = KeyFactory.getInstance("RSA");
         PublicKey connectedPublicKey = keyFactory.generatePublic(new X509EncodedKeySpec(connectedPublicKeyBytes));
@@ -62,6 +55,7 @@ public class Client {
                             hostname = ChatUtils.parseCommands(message, dataOut, hostname);
 
                             if (message.equals(ChatUtils.EXIT_MESSAGE)){
+                                System.out.println("exit message being sent");
                                 dataOut.writeUTF("\r{Server} " + hostname + " has left the chat - use /exit to leave");
                                 dataIn.close();
                                 dataOut.close();

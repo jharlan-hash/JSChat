@@ -1,11 +1,11 @@
 /* ChatUtils.java */
 
-import java.io.IOException;
-import java.util.Scanner;
-import java.io.DataOutputStream;
 import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.util.Scanner;
 
 public class ChatUtils {
     public static final String USER_PROMPT = "[you] ";
@@ -72,6 +72,20 @@ public class ChatUtils {
         }         
 
         return encryptedMessage;
+    }
+
+    public static byte[] readPublicKey(DataInputStream dataIn) throws IOException {
+        byte[] publicKeyBytes = new byte[422];
+
+        for (int p = 0; p < publicKeyBytes.length; ) {
+            int read = dataIn.read(publicKeyBytes);
+            if (read == -1) {
+                throw new RuntimeException("Premature end of stream");
+            }
+            p += read;
+        }
+
+        return publicKeyBytes;
     }
 
     public static String parseCommands(String message, DataOutputStream dataOut ,String hostname) throws IOException {

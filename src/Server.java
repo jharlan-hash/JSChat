@@ -19,16 +19,7 @@ public class Server {
         DataInputStream firstDataIn = new DataInputStream(firstClientSocket.getInputStream());
         DataOutputStream firstDataOut = new DataOutputStream(firstClientSocket.getOutputStream());
 
-        byte[] firstPublicKeyBytes = new byte[422];
-
-        for (int p = 0; p < firstPublicKeyBytes.length; ) {
-            int read = firstDataIn.read(firstPublicKeyBytes);
-            if (read == -1) {
-                throw new RuntimeException("Premature end of stream");
-            }
-            p += read;
-        }
-
+        byte[] firstPublicKeyBytes = ChatUtils.readPublicKey(firstDataIn);
         System.out.println("First public key read");
 
         Socket secondClientSocket = serverSocket.accept(); 
@@ -37,15 +28,7 @@ public class Server {
         DataInputStream secondDataIn = new DataInputStream(secondClientSocket.getInputStream());
         DataOutputStream secondDataOut = new DataOutputStream(secondClientSocket.getOutputStream());
 
-        byte[] secondPublicKeyBytes = new byte[422];
-
-        for (int p = 0; p < secondPublicKeyBytes.length; ) {
-            int read = secondDataIn.read(secondPublicKeyBytes);
-            if (read == -1) {
-                throw new RuntimeException("Premature end of stream");
-            }
-            p += read;
-        }
+        byte[] secondPublicKeyBytes = ChatUtils.readPublicKey(secondDataIn);
         System.out.println("Second public key read");
 
         secondDataOut.write(firstPublicKeyBytes);
@@ -72,7 +55,6 @@ public class Server {
             public void run(){
                 while (isRunning) {
                     try {
-                        System.out.println("Reading message from client...");
                         byte[] message = ChatUtils.getMessage(dataIn);
                         dataOut.write(message);
                     } catch (IOException e) {
