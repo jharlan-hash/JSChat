@@ -11,6 +11,7 @@ public class ChatUtils {
     public static final String USER_PROMPT = "[you] ";
     public static final String EXIT_MESSAGE = "/exit";
     public static final String NICK_MESSAGE = "/nick";
+
     public static boolean serverIsRunning = true;
 
     public static void main (String[] args) throws Exception {
@@ -38,31 +39,34 @@ public class ChatUtils {
             System.out.println("IP Address: " + ip);
         }
 
-        switch (mode) {
-            case "con":
-            try {
-                Client.clientMode(ip, port);
-            } catch (IOException e) {
-                System.out.println("Connection failed - make sure the IP and port are correct.");
+        try {
+            switch (mode) {
+                case "con":{
+                    Client.clientMode(ip, port);
+                    break;
+                }
+                case "srv":{
+                    Server.serverMode(port);
+                    break;
+                }
+                default:{
+                    System.out.println("Please enter a valid mode (con or srv)");
+                    break;
+                }
             }
-                break;
-            case "srv":
-                Server.serverMode(port);
-                break;
-            default:
-                System.out.println("Please enter a valid mode (con or srv)");
-                break;
+        } catch (IOException e) {
+            System.out.println("Connection failed - make sure the IP and port are correct.");
         }
     }
 
-    public static String sendMessage(DataOutputStream dataOut, Scanner sc) throws IOException {
+    public static String getUserInput(DataOutputStream dataOut, Scanner sc) throws IOException {
         System.out.print(USER_PROMPT);
         String messageToSend = sc.nextLine();
 
         return messageToSend;
     }
 
-    public static byte[] getMessage(DataInputStream dataIn) throws IOException {
+    public static byte[] receiveMessage(DataInputStream dataIn) throws IOException {
         byte[] encryptedMessage = new byte[384];
 
         try {
@@ -89,7 +93,7 @@ public class ChatUtils {
         return publicKeyBytes;
     }
 
-    public static String parseCommands(String message, DataOutputStream dataOut ,String hostname) throws IOException {
+    public static String parseCommands(String message, DataOutputStream dataOut, String hostname) throws IOException {
         if (message.startsWith(ChatUtils.NICK_MESSAGE)) {
             String nickname = nickname(hostname, message);
             dataOut.writeUTF("\r{Server} " + hostname + " changed their nickname to " + nickname);

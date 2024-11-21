@@ -54,7 +54,7 @@ public class Server {
             public void run(){
                 while (ChatUtils.serverIsRunning) {
                     try {
-                        byte[] message = ChatUtils.getMessage(dataIn);
+                        byte[] message = ChatUtils.receiveMessage(dataIn);
                         dataOut.write(message);
                     } catch (IOException e) {
                         e.printStackTrace();

@@ -50,12 +50,11 @@ public class Client {
                 while (true) {
                     try {
                         if (mode.equals("send")) {
-                            String message = ChatUtils.sendMessage(dataOut, sc);
+                            String message = ChatUtils.getUserInput(dataOut, sc);
 
                             hostname = ChatUtils.parseCommands(message, dataOut, hostname);
 
                             if (message.equals(ChatUtils.EXIT_MESSAGE)){
-                                System.out.println("exit message being sent");
                                 dataOut.write(RSA.encrypt("\r{Server} " + hostname + " has left the chat - use /exit to leave", connectedPublicKey));
                                 dataIn.close();
                                 dataOut.close();
@@ -77,7 +76,7 @@ public class Client {
 
 
                         } else if (mode.equals("get")) {
-                            byte[] encryptedMessage = ChatUtils.getMessage(dataIn);
+                            byte[] encryptedMessage = ChatUtils.receiveMessage(dataIn);
                             String message;
                             try {
                                 message = RSA.decrypt(encryptedMessage, keypair.getPrivate());
