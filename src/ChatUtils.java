@@ -11,6 +11,7 @@ public class ChatUtils {
     public static final String USER_PROMPT = "[you] ";
     public static final String EXIT_MESSAGE = "/exit";
     public static final String NICK_MESSAGE = "/nick";
+    public static boolean serverIsRunning = true;
 
     public static void main (String[] args) throws Exception {
         String mode;

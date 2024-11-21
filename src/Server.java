@@ -8,7 +8,6 @@ import java.net.Socket;
 import java.util.Scanner;
 
 public class Server {
-    public static boolean isRunning = true;
     public static void serverMode (int port) throws IOException, InterruptedException, Exception {
         ServerSocket serverSocket = new ServerSocket(port);
         Scanner sc = new Scanner(System.in);
@@ -53,7 +52,7 @@ public class Server {
     private static Thread createThread(Socket clientSocket, DataInputStream dataIn, DataOutputStream dataOut) {
         Thread getMessageFromClient = new Thread(){
             public void run(){
-                while (isRunning) {
+                while (ChatUtils.serverIsRunning) {
                     try {
                         byte[] message = ChatUtils.getMessage(dataIn);
                         dataOut.write(message);

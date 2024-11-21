@@ -56,11 +56,13 @@ public class Client {
 
                             if (message.equals(ChatUtils.EXIT_MESSAGE)){
                                 System.out.println("exit message being sent");
-                                dataOut.writeUTF("\r{Server} " + hostname + " has left the chat - use /exit to leave");
+                                dataOut.write(RSA.encrypt("\r{Server} " + hostname + " has left the chat - use /exit to leave", connectedPublicKey));
                                 dataIn.close();
                                 dataOut.close();
                                 sc.close();
-                                Server.isRunning = false;
+                                try{
+                                    ChatUtils.serverIsRunning = false;
+                                } catch (Exception ignored) {return;} 
                                 return;
                             }
 
@@ -76,7 +78,12 @@ public class Client {
 
                         } else if (mode.equals("get")) {
                             byte[] encryptedMessage = ChatUtils.getMessage(dataIn);
-                            String message = RSA.decrypt(encryptedMessage, keypair.getPrivate());
+                            String message;
+                            try {
+                                message = RSA.decrypt(encryptedMessage, keypair.getPrivate());
+                            } catch (Exception ignored) {
+                                return;
+                            }
 
                             if (message == null || message.equals(ChatUtils.EXIT_MESSAGE)){
                                 return;
