@@ -12,7 +12,7 @@ public class ChatUtils {
     public static final String EXIT_MESSAGE = "/exit";
     public static final String NICK_MESSAGE = "/nick";
 
-    public static void main (String[] args) throws IOException, InterruptedException {
+    public static void main (String[] args) throws Exception {
         String mode;
         String ip;
         int port;
@@ -56,24 +56,39 @@ public class ChatUtils {
 
     public static String sendMessage(DataOutputStream dataOut, Scanner sc) throws IOException {
         System.out.print(USER_PROMPT);
-        String messageSent = sc.nextLine();
+        String messageToSend = sc.nextLine();
 
-        dataOut.writeUTF(messageSent);
-
-        return messageSent;
+        return messageToSend;
     }
 
-    public static String getMessage(DataInputStream dataIn) throws IOException {
-        String messageReceived;
+    public static byte[] getMessage(DataInputStream dataIn) throws IOException {
+        byte[] encryptedMessage = new byte[384];
 
         try {
-            messageReceived = dataIn.readUTF();
+            dataIn.read(encryptedMessage);
         } catch (IOException e) {
             System.out.println("Connection closed by server.");
             return null;
         }         
 
-        return messageReceived;
+        return encryptedMessage;
+    }
+
+    public static String parseCommands(String message, DataOutputStream dataOut ,String hostname) throws IOException {
+        if (message.startsWith(ChatUtils.NICK_MESSAGE)) {
+            String nickname = nickname(hostname, message);
+            dataOut.writeUTF("\r{Server} " + hostname + " changed their nickname to " + nickname);
+            return nickname;
+        }
+
+        return hostname;
+    }
+
+    public static String nickname (String hostname, String message){
+        String[] messageArray = message.split(" ");
+        hostname = messageArray[1];
+
+        return hostname;
     }
 
     private static String getLocalIP() {

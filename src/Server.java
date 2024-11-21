@@ -1,28 +1,58 @@
 /* Server.java */
-import java.net.ServerSocket;
-import java.net.Socket;
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.util.HexFormat;
 import java.util.Scanner;
 
 public class Server {
-    public static void serverMode (int port) throws IOException, InterruptedException {
+    public static boolean isRunning = true;
+    public static void serverMode (int port) throws IOException, InterruptedException, Exception {
         ServerSocket serverSocket = new ServerSocket(port);
         Scanner sc = new Scanner(System.in);
 
         System.out.println("Listening for clients...");
         Socket firstClientSocket = serverSocket.accept(); 
+        System.out.println("Client connected");
         DataInputStream firstDataIn = new DataInputStream(firstClientSocket.getInputStream());
         DataOutputStream firstDataOut = new DataOutputStream(firstClientSocket.getOutputStream());
-        System.out.println("Client connected");
 
+        byte[] firstPublicKeyBytes = new byte[422];
+
+        for (int p = 0; p < firstPublicKeyBytes.length; ) {
+            int read = firstDataIn.read(firstPublicKeyBytes);
+            if (read == -1) {
+                throw new RuntimeException("Premature end of stream");
+            }
+            p += read;
+        }
+
+        System.out.println("First public key read");
 
         Socket secondClientSocket = serverSocket.accept(); 
         System.out.println("Second client connected");
         firstDataOut.writeUTF("\rSecond user connected");
         DataInputStream secondDataIn = new DataInputStream(secondClientSocket.getInputStream());
         DataOutputStream secondDataOut = new DataOutputStream(secondClientSocket.getOutputStream());
+
+        byte[] secondPublicKeyBytes = new byte[422];
+
+        for (int p = 0; p < secondPublicKeyBytes.length; ) {
+            int read = secondDataIn.read(secondPublicKeyBytes);
+            if (read == -1) {
+                throw new RuntimeException("Premature end of stream");
+            }
+            p += read;
+        }
+        System.out.println("Second public key read");
+
+        secondDataOut.write(firstPublicKeyBytes); // send first client's public key to second client
+        System.out.println("First public key sent to second client");
+        firstDataOut.write(secondPublicKeyBytes); // send second client's public key to first client
+        System.out.println("Second public key sent to first client");
 
         Thread getMessageFromFirstClient = createThread(firstClientSocket, firstDataIn, secondDataOut);
         Thread getMessageFromSecondClient = createThread(secondClientSocket, secondDataIn, firstDataOut);
@@ -40,28 +70,17 @@ public class Server {
 
     private static Thread createThread(Socket clientSocket, DataInputStream dataIn, DataOutputStream dataOut) {
         Thread getMessageFromClient = new Thread(){
-            String hostname = clientSocket.getInetAddress().getHostName();
             public void run() {
-                while (true) {
+                while (isRunning) {
                     try {
-                        String message = ChatUtils.getMessage(dataIn);
-
-                        if (message == null || message.equals(ChatUtils.EXIT_MESSAGE)){
-                            dataOut.writeUTF("\r{Server} " + hostname + " has left the chat - use /exit to leave");
-                            return;
-                        }
-
-                        hostname = parseCommands(message, dataOut, clientSocket);
-
-                        message = "\r[" + hostname + "] " + message;
-
-                        if (!(message.startsWith("\r[" + hostname + "] /"))) { // checking if the message is a command
-                            dataOut.writeUTF(message);
-                        }
-                        System.out.println(message);
+                        System.out.println("Reading message from client...");
+                        byte[] message = ChatUtils.getMessage(dataIn);
+                        System.out.println("Message read: " + HexFormat.of().formatHex(message));
+                        dataOut.write(message);
                     } catch (IOException e) {
                         e.printStackTrace();
                         return;
+
                     }
                 }
             }
@@ -70,24 +89,8 @@ public class Server {
         return getMessageFromClient;
     }
 
-    private static String parseCommands(String message, DataOutputStream dataOut , Socket socket) throws IOException {
-        String hostname = socket.getInetAddress().getHostName();
-
-        if (message.startsWith(ChatUtils.NICK_MESSAGE)) {
-            return nickname(hostname, message, socket);
-        }
-
-        return hostname;
-    }
-
-    private static String nickname (String hostname, String message, Socket socket){
-        String[] messageArray = message.split(" ");
-        hostname = messageArray[1];
-
-        return hostname;
-    }
-
     private static void shutdown(
+
         DataInputStream firstDataIn, 
         DataOutputStream firstDataOut, 
         DataInputStream secondDataIn, 
