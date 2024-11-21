@@ -9,7 +9,6 @@ import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.PublicKey;
 import java.security.spec.X509EncodedKeySpec;
-import java.util.HexFormat;
 import java.util.Scanner;
 
 public class Client {
@@ -25,7 +24,6 @@ public class Client {
         DataOutputStream dataOut = new DataOutputStream(socket.getOutputStream());
 
         dataOut.write(keypair.getPublic().getEncoded()); // send public key to server
-        System.out.print("Public key sent to server: " + keypair.getPublic().toString());
 
         byte[] connectedPublicKeyBytes = new byte[422];
         for (int p = 0; p < connectedPublicKeyBytes.length; ) {
@@ -38,7 +36,6 @@ public class Client {
         
         KeyFactory keyFactory = KeyFactory.getInstance("RSA");
         PublicKey connectedPublicKey = keyFactory.generatePublic(new X509EncodedKeySpec(connectedPublicKeyBytes));
-        System.out.println("Connected public key: " + connectedPublicKey.toString());
 
         Thread sendMessageToServer = createThread(dataIn, dataOut, sc, keypair, connectedPublicKey, socket, "send");
         Thread getMessageFromServer = createThread(dataIn, dataOut, sc, keypair, connectedPublicKey, socket, "get");
@@ -64,10 +61,8 @@ public class Client {
 
                             hostname = ChatUtils.parseCommands(message, dataOut, hostname);
 
-                            message = "\r[" + hostname + "] " + message;
-
                             if (message.equals(ChatUtils.EXIT_MESSAGE)){
-                                //dataOut.writeUTF("\r{Server} " + hostname + " has left the chat - use /exit to leave");
+                                dataOut.writeUTF("\r{Server} " + hostname + " has left the chat - use /exit to leave");
                                 dataIn.close();
                                 dataOut.close();
                                 sc.close();
@@ -75,13 +70,11 @@ public class Client {
                                 return;
                             }
 
+                            message = "\r[" + hostname + "] " + message;
+
                             if (!(message.startsWith("\r[" + hostname + "] /"))) { // checking if the message is a command
                                 // Encrypt the message
                                 byte[] encryptedMessage = RSA.encrypt(message, connectedPublicKey);
-                                System.out.println("Message: " + message);
-                                System.out.println("Encrypted message: " + HexFormat.of().formatHex(encryptedMessage));
-                                System.out.println("Encrypted message length: " + encryptedMessage.length);
-                                System.out.println("Public Key Length: " + connectedPublicKey.getEncoded().length);
                                 dataOut.write(encryptedMessage);
                                 dataOut.flush();
                             }
@@ -105,7 +98,6 @@ public class Client {
                         e.printStackTrace();
                         return;
                     }
-                    Thread.currentThread().interrupt();
                 }
             }
         };
@@ -114,6 +106,7 @@ public class Client {
     }
 
     private static void shutdown(DataInputStream dataIn, DataOutputStream dataOut, Scanner sc, Socket socket) throws IOException {
+        System.out.println("Shutting down client...");
         dataIn.close();
         dataOut.close();
         sc.close();

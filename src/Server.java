@@ -5,7 +5,6 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.HexFormat;
 import java.util.Scanner;
 
 public class Server {
@@ -49,9 +48,9 @@ public class Server {
         }
         System.out.println("Second public key read");
 
-        secondDataOut.write(firstPublicKeyBytes); // send first client's public key to second client
+        secondDataOut.write(firstPublicKeyBytes);
         System.out.println("First public key sent to second client");
-        firstDataOut.write(secondPublicKeyBytes); // send second client's public key to first client
+        firstDataOut.write(secondPublicKeyBytes);
         System.out.println("Second public key sent to first client");
 
         Thread getMessageFromFirstClient = createThread(firstClientSocket, firstDataIn, secondDataOut);
@@ -70,12 +69,11 @@ public class Server {
 
     private static Thread createThread(Socket clientSocket, DataInputStream dataIn, DataOutputStream dataOut) {
         Thread getMessageFromClient = new Thread(){
-            public void run() {
+            public void run(){
                 while (isRunning) {
                     try {
                         System.out.println("Reading message from client...");
                         byte[] message = ChatUtils.getMessage(dataIn);
-                        System.out.println("Message read: " + HexFormat.of().formatHex(message));
                         dataOut.write(message);
                     } catch (IOException e) {
                         e.printStackTrace();
