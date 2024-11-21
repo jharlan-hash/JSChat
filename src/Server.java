@@ -57,7 +57,6 @@ public class Server {
                         byte[] message = ChatUtils.receiveMessage(dataIn);
                         dataOut.write(message);
                     } catch (IOException e) {
-                        e.printStackTrace();
                         return;
 
                     }
@@ -69,7 +68,6 @@ public class Server {
     }
 
     private static void shutdown(
-
         DataInputStream firstDataIn, 
         DataOutputStream firstDataOut, 
         DataInputStream secondDataIn, 
