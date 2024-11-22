@@ -5,6 +5,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.security.PublicKey;
 import java.util.Scanner;
 
 public class ChatUtils {
@@ -93,10 +94,10 @@ public class ChatUtils {
         return publicKeyBytes;
     }
 
-    public static String parseCommands(String message, DataOutputStream dataOut, String hostname) throws IOException {
+    public static String parseCommands(String message, DataOutputStream dataOut, String hostname, PublicKey publicKey) throws Exception {
         if (message.startsWith(ChatUtils.NICK_MESSAGE)) {
             String nickname = nickname(hostname, message);
-            dataOut.writeUTF("\r{Server} " + hostname + " changed their nickname to " + nickname);
+            dataOut.write(RSA.encrypt("\r{Server} " + hostname + " changed their nickname to " + nickname, publicKey));
             return nickname;
         }
 
