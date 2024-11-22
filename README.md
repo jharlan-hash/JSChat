@@ -49,29 +49,15 @@ A simple terminal-based chat application that enables two clients to communicate
 ## Features
 
 - Server supports two simultaneous clients
+- End-to-end RSA encryption
 - Real-time chat between connected clients
 - Use `/exit` to disconnect
+- Use `/nick <nickname>` to change your display name 
 - Automatic IP detection with `self` parameter
 - Connection status notifications
 
-## How It Works
-
-1. Server starts and waits for two clients
-2. First client connects
-3. Second client connects
-4. Clients can now exchange messages
-5. Messages show sender's hostname
-6. Either client can exit with `/exit`
-
 ## Planned Features
-- **End-to-end encryption**
+- **Be able to connect more than two clients**
 - Better user interface
 - Something better than build.sh
-- Be able to connect more than two clients
 - Let the server stay open after clients disconnect
-
-## Notes
-
-- Server must be running before clients can connect
-- Maximum of two clients supported
-- Clients will disconnect if server closes
