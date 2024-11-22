@@ -16,58 +16,55 @@ public class ChatUtils {
     public static boolean serverIsRunning = true;
 
     public static void main (String[] args) throws Exception {
-        String mode;
-        String ip;
-        int port;
+        String operationMode, ipAddress;
+        int portNumber;
 
         if (args.length != 3) {
-            System.out.println("Usage: ./build.sh <mode> <ip> <port>");
+            System.out.println("Usage: ./build.sh <operationMode> <ipAddress> <portNumber>");
             System.exit(1);
         }
 
-        mode = args[0];
-        ip = args[1].equals("self") ? getLocalIP() : args[1];
+        operationMode = args[0];
+        ipAddress = args[1].equals("self") ? getLocalIPAddress() : args[1];
 
         try {
-            port = Integer.parseInt(args[2]);
+            portNumber = Integer.parseInt(args[2]);
         } catch (NumberFormatException e) {
             System.out.println("Please enter a valid port number.");
-            port = -1;
+            portNumber = -1;
             System.exit(1);
         }
 
         if (args[1].equals("self")) {
-            System.out.println("IP Address: " + ip);
+            System.out.println("IP Address: " + ipAddress);
         }
 
         try {
-            switch (mode) {
-                case "con":{
-                    Client.clientMode(ip, port);
+            switch (operationMode) {
+                case "con":
+                    Client.clientMode(ipAddress, portNumber);
                     break;
-                }
-                case "srv":{
-                    Server.serverMode(port);
+                case "srv":
+                    Server.serverMode(portNumber);
                     break;
-                }
-                default:{
-                    System.out.println("Please enter a valid mode (con or srv)");
+                default:
+                    System.out.println("Please enter a valid operationMode (con or srv)");
                     break;
-                }
+                
             }
         } catch (IOException e) {
-            System.out.println("Connection failed - make sure the IP and port are correct.");
+            System.out.println("Connection failed - make sure the IP and portNumber are correct.");
         }
     }
 
-    public static String getUserInput(DataOutputStream dataOut, Scanner sc) throws IOException {
+    public static String promptUserInput(DataOutputStream dataOut, Scanner scanner) throws IOException {
         System.out.print(USER_PROMPT);
-        String messageToSend = sc.nextLine();
+        String messageToSend = scanner.nextLine();
 
         return messageToSend;
     }
 
-    public static byte[] receiveMessage(DataInputStream dataIn) throws IOException {
+    public static byte[] receiveEncryptedMessage(DataInputStream dataIn) throws IOException {
         byte[] encryptedMessage = new byte[384];
 
         try {
@@ -80,42 +77,40 @@ public class ChatUtils {
         return encryptedMessage;
     }
 
-    public static byte[] readPublicKey(DataInputStream dataIn) throws IOException {
-        byte[] publicKeyBytes = new byte[422];
+    public static byte[] readPublicKeyBytes(DataInputStream dataIn) throws IOException {
+        byte[] keyBytes = new byte[422];
 
-        for (int p = 0; p < publicKeyBytes.length; ) {
-            int read = dataIn.read(publicKeyBytes);
+        int p = 0;
+        while (p < keyBytes.length) {
+            int read = dataIn.read(keyBytes);
             if (read == -1) {
                 throw new RuntimeException("Premature end of stream");
             }
             p += read;
         }
 
-        return publicKeyBytes;
+        return keyBytes;
     }
 
-    public static String parseCommands(String message, DataOutputStream dataOut, String hostname, PublicKey publicKey) throws Exception {
+    public static String handleUserCommands(String message, DataOutputStream dataOut, String currentNickname, PublicKey publicKey) throws Exception {
         if (message.startsWith(ChatUtils.NICK_MESSAGE)) {
-            String nickname = nickname(hostname, message);
-            dataOut.write(RSA.encrypt("\r{Server} " + hostname + " changed their nickname to " + nickname, publicKey));
+            String nickname = extractNickname(message);
+            dataOut.write(RSA.encrypt("\r{Server} " + currentNickname + " changed their nickname to " + nickname, publicKey));
             return nickname;
         }
 
-        return hostname;
+        return currentNickname;
     }
 
-    public static String nickname (String hostname, String message){
-        String[] messageArray = message.split(" ");
-        hostname = messageArray[1];
-
-        return hostname;
+    public static String extractNickname (String message){
+        return message.split(" ")[1];
     }
 
-    private static String getLocalIP() {
+    private static String getLocalIPAddress() {
         try(final DatagramSocket socket = new DatagramSocket()){
             socket.connect(InetAddress.getByName("8.8.8.8"), 0);
             return socket.getLocalAddress().getHostAddress();
-        } catch (Exception e) {
+        } catch (IOException e) {
             e.printStackTrace();
             return null;
         }

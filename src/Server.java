@@ -18,7 +18,7 @@ public class Server {
         DataInputStream firstDataIn = new DataInputStream(firstClientSocket.getInputStream());
         DataOutputStream firstDataOut = new DataOutputStream(firstClientSocket.getOutputStream());
 
-        byte[] firstPublicKeyBytes = ChatUtils.readPublicKey(firstDataIn);
+        byte[] firstPublicKeyBytes = ChatUtils.readPublicKeyBytes(firstDataIn);
         System.out.println("First public key read");
 
         Socket secondClientSocket = serverSocket.accept(); 
@@ -27,7 +27,7 @@ public class Server {
         DataInputStream secondDataIn = new DataInputStream(secondClientSocket.getInputStream());
         DataOutputStream secondDataOut = new DataOutputStream(secondClientSocket.getOutputStream());
 
-        byte[] secondPublicKeyBytes = ChatUtils.readPublicKey(secondDataIn);
+        byte[] secondPublicKeyBytes = ChatUtils.readPublicKeyBytes(secondDataIn);
         System.out.println("Second public key read");
 
         secondDataOut.write(firstPublicKeyBytes);
@@ -54,7 +54,7 @@ public class Server {
             public void run(){
                 while (ChatUtils.serverIsRunning) {
                     try {
-                        byte[] message = ChatUtils.receiveMessage(dataIn);
+                        byte[] message = ChatUtils.receiveEncryptedMessage(dataIn);
                         dataOut.write(message);
                     } catch (IOException e) {
                         return;

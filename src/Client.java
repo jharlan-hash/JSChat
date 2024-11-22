@@ -25,7 +25,7 @@ public class Client {
 
         dataOut.write(keypair.getPublic().getEncoded()); // send public key to server
 
-        byte[] connectedPublicKeyBytes = ChatUtils.readPublicKey(dataIn);
+        byte[] connectedPublicKeyBytes = ChatUtils.readPublicKeyBytes(dataIn);
         
         KeyFactory keyFactory = KeyFactory.getInstance("RSA");
         PublicKey connectedPublicKey = keyFactory.generatePublic(new X509EncodedKeySpec(connectedPublicKeyBytes));
@@ -50,9 +50,9 @@ public class Client {
                 while (true) {
                     try {
                         if (mode.equals("send")) {
-                            String message = ChatUtils.getUserInput(dataOut, sc);
+                            String message = ChatUtils.promptUserInput(dataOut, sc);
 
-                            hostname = ChatUtils.parseCommands(message, dataOut, hostname, connectedPublicKey);
+                            hostname = ChatUtils.handleUserCommands(message, dataOut, hostname, connectedPublicKey);
 
                             if (message.equals(ChatUtils.EXIT_MESSAGE)){
                                 dataOut.write(RSA.encrypt("\r{Server} " + hostname + " has left the chat - use /exit to leave", connectedPublicKey));
@@ -76,7 +76,7 @@ public class Client {
 
 
                         } else if (mode.equals("get")) {
-                            byte[] encryptedMessage = ChatUtils.receiveMessage(dataIn);
+                            byte[] encryptedMessage = ChatUtils.receiveEncryptedMessage(dataIn);
                             String message;
                             try {
                                 message = RSA.decrypt(encryptedMessage, keypair.getPrivate());
