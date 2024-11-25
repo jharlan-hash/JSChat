@@ -1,10 +1,10 @@
-/* ChatUtils.java */
-
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.security.PublicKey;
 import java.util.Scanner;
 
@@ -60,12 +60,13 @@ public class ChatUtils {
     public static String promptUserInput(DataOutputStream dataOut, Scanner scanner) throws IOException {
         System.out.print(USER_PROMPT);
         String messageToSend = scanner.nextLine();
+        messageToSend = messageToSend.replaceAll("[\\p{Cntrl}\\p{Cc}\\p{Cf}\\p{Co}\\p{Cn}]", ""); // remove control characters
 
         return messageToSend;
     }
 
     public static byte[] receiveEncryptedMessage(DataInputStream dataIn) throws IOException {
-        byte[] encryptedMessage = new byte[384];
+        byte[] encryptedMessage = new byte[384]; // 384 bytes is always the size of the encrypted message
 
         try {
             dataIn.read(encryptedMessage);
@@ -78,7 +79,7 @@ public class ChatUtils {
     }
 
     public static byte[] readPublicKeyBytes(DataInputStream dataIn) throws IOException {
-        byte[] keyBytes = new byte[422];
+        byte[] keyBytes = new byte[422]; // 422 is always the size of the public key
 
         int p = 0;
         while (p < keyBytes.length) {
@@ -113,6 +114,35 @@ public class ChatUtils {
         } catch (IOException e) {
             e.printStackTrace();
             return null;
+        }
+    }
+
+    public static void shutdown(
+        DataInputStream dataIn1, 
+        DataOutputStream dataOut1, 
+        DataInputStream dataIn2, 
+        DataOutputStream dataOut2, 
+        Scanner scanner, 
+        Socket clientSocket1, 
+        Socket clientSocket2, 
+        ServerSocket serverSocket
+    ) throws IOException {
+        System.out.println("Shutting down...");
+        closeQuietly(dataIn1);
+        closeQuietly(dataOut1);
+        closeQuietly(dataIn2);
+        closeQuietly(dataOut2);
+        closeQuietly(scanner);
+        closeQuietly(clientSocket1);
+        closeQuietly(clientSocket2);
+        closeQuietly(serverSocket);
+    }
+
+    public static void closeQuietly(AutoCloseable closeable) {
+        if (closeable != null) {
+            try {
+                closeable.close();
+            } catch (Exception ignored) {}
         }
     }
 }

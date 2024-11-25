@@ -2,7 +2,6 @@
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.security.KeyFactory;
@@ -39,8 +38,7 @@ public class Client {
         getMessageFromServer.join();
         sendMessageToServer.join();
 
-        shutdown(dataIn, dataOut, sc, socket);
-        System.exit(0);
+        ChatUtils.shutdown(dataIn, dataOut, null, null, sc, socket, null, null);
     }
 
     public static Thread createThread(DataInputStream dataIn, DataOutputStream dataOut, Scanner sc, KeyPair keypair, PublicKey connectedPublicKey, Socket socket, String mode) {
@@ -97,13 +95,5 @@ public class Client {
         };
 
         return getMessageFromClient;
-    }
-
-    private static void shutdown(DataInputStream dataIn, DataOutputStream dataOut, Scanner sc, Socket socket) throws IOException {
-        System.out.println("Shutting down client...");
-        dataIn.close();
-        dataOut.close();
-        sc.close();
-        socket.close();
     }
 }

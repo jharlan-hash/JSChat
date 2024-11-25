@@ -10,53 +10,54 @@ import java.util.Scanner;
 public class Server {
     public static void serverMode (int port) throws IOException, InterruptedException, Exception {
         ServerSocket serverSocket = new ServerSocket(port);
-        Scanner sc = new Scanner(System.in);
+        Scanner scanner = new Scanner(System.in);
 
         System.out.println("Listening for clients...");
-        Socket firstClientSocket = serverSocket.accept(); 
+        Socket clientSocket1 = serverSocket.accept(); 
         System.out.println("Client connected");
-        DataInputStream firstDataIn = new DataInputStream(firstClientSocket.getInputStream());
-        DataOutputStream firstDataOut = new DataOutputStream(firstClientSocket.getOutputStream());
+        DataInputStream dataIn1 = new DataInputStream(clientSocket1.getInputStream());
+        DataOutputStream dataOut1 = new DataOutputStream(clientSocket1.getOutputStream());
 
-        byte[] firstPublicKeyBytes = ChatUtils.readPublicKeyBytes(firstDataIn);
+        byte[] firstPublicKeyBytes = ChatUtils.readPublicKeyBytes(dataIn1);
         System.out.println("First public key read");
 
-        Socket secondClientSocket = serverSocket.accept(); 
+        Socket clientSocket2 = serverSocket.accept(); 
         System.out.println("Second client connected");
-        firstDataOut.writeUTF("\rSecond user connected");
-        DataInputStream secondDataIn = new DataInputStream(secondClientSocket.getInputStream());
-        DataOutputStream secondDataOut = new DataOutputStream(secondClientSocket.getOutputStream());
+        dataOut1.writeUTF("\rSecond user connected");
+        DataInputStream dataIn2 = new DataInputStream(clientSocket2.getInputStream());
+        DataOutputStream dataOut2 = new DataOutputStream(clientSocket2.getOutputStream());
 
-        byte[] secondPublicKeyBytes = ChatUtils.readPublicKeyBytes(secondDataIn);
+        byte[] secondPublicKeyBytes = ChatUtils.readPublicKeyBytes(dataIn2);
         System.out.println("Second public key read");
 
-        secondDataOut.write(firstPublicKeyBytes);
+        dataOut2.write(firstPublicKeyBytes);
         System.out.println("First public key sent to second client");
-        firstDataOut.write(secondPublicKeyBytes);
+        dataOut1.write(secondPublicKeyBytes);
         System.out.println("Second public key sent to first client");
 
-        Thread getMessageFromFirstClient = createThread(firstClientSocket, firstDataIn, secondDataOut);
-        Thread getMessageFromSecondClient = createThread(secondClientSocket, secondDataIn, firstDataOut);
+        Thread thread1 = createThread(clientSocket1, dataIn1, dataOut2);
+        Thread thread2 = createThread(clientSocket2, dataIn2, dataOut1);
 
-        getMessageFromFirstClient.start();
-        getMessageFromSecondClient.start();
+        thread1.start();
+        thread2.start();
 
-        getMessageFromFirstClient.join();
-        getMessageFromSecondClient.join();
+        thread1.join();
+        thread2.join();
 
-        shutdown(firstDataIn, firstDataOut, secondDataIn, secondDataOut, sc, firstClientSocket, secondClientSocket, serverSocket);
+        ChatUtils.shutdown(dataIn1, dataOut1, dataIn2, dataOut2, scanner, clientSocket1, clientSocket2, serverSocket);
     }
 
 
 
     private static Thread createThread(Socket clientSocket, DataInputStream dataIn, DataOutputStream dataOut) {
-        Thread getMessageFromClient = new Thread(){
+        Thread clientThread = new Thread(){
             public void run(){
                 while (ChatUtils.serverIsRunning) {
                     try {
                         byte[] message = ChatUtils.receiveEncryptedMessage(dataIn);
                         dataOut.write(message);
                     } catch (IOException e) {
+                        e.printStackTrace();
                         return;
 
                     }
@@ -64,36 +65,7 @@ public class Server {
             }
         };
 
-        return getMessageFromClient;
+        return clientThread;
     }
 
-    private static void shutdown(
-        DataInputStream firstDataIn, 
-        DataOutputStream firstDataOut, 
-        DataInputStream secondDataIn, 
-        DataOutputStream secondDataOut, 
-        Scanner sc, 
-        Socket firstClientSocket, 
-        Socket secondClientSocket, 
-        ServerSocket serverSocket
-    ) throws IOException {
-        System.out.println("Shutting down server...");
-        closeQuietly(firstDataIn);
-        closeQuietly(firstDataOut);
-        closeQuietly(secondDataIn);
-        closeQuietly(secondDataOut);
-        closeQuietly(sc);
-        closeQuietly(firstClientSocket);
-        closeQuietly(secondClientSocket);
-        closeQuietly(serverSocket);
-        System.exit(0);
-    }
-
-    private static void closeQuietly(AutoCloseable closeable) {
-        if (closeable != null) {
-            try {
-                closeable.close();
-            } catch (Exception ignored) {}
-        }
-    }
 }
