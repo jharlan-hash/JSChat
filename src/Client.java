@@ -8,13 +8,21 @@ import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.PublicKey;
 import java.security.spec.X509EncodedKeySpec;
+import java.util.HexFormat;
 import java.util.Scanner;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 
 public class Client {
     public static void clientMode (String ip, int port) throws Exception {
         Socket socket = new Socket();
         Scanner sc = new Scanner(System.in); 
         KeyPair keypair = RSA.generateRSAKeyPair();
+        SecretKey AESKey = AES.generateKey(128);
+        System.out.println("AES Key length: " + AESKey.getEncoded().length);
+        IvParameterSpec ivParameterSpec = AES.generateIv();
+        String algorithm = "AES/CBC/PKCS5Padding";
 
         socket.connect(new InetSocketAddress(ip, port), 0);
         System.out.println("Connection successful!");
@@ -24,10 +32,30 @@ public class Client {
 
         dataOut.write(keypair.getPublic().getEncoded()); // send public key to server
 
-        byte[] connectedPublicKeyBytes = ChatUtils.readPublicKeyBytes(dataIn);
-        
+        byte[] connectedPublicKeyBytes = ChatUtils.readKeyBytes(dataIn, 422);
+
         KeyFactory keyFactory = KeyFactory.getInstance("RSA");
         PublicKey connectedPublicKey = keyFactory.generatePublic(new X509EncodedKeySpec(connectedPublicKeyBytes));
+
+        dataOut.write(RSA.encrypt(AESKey.getEncoded(), connectedPublicKey)); // send AES key to server
+        System.out.println("AES key sent: " + HexFormat.of().formatHex(AESKey.getEncoded()));
+
+        byte[] AESKeyBytes = new byte[384];
+        dataIn.readFully(AESKeyBytes);
+
+        try{
+            AESKey = new SecretKeySpec(RSA.decryptIntoByteArray(AESKeyBytes, keypair.getPrivate()), "AES");
+        } catch (Exception e) {
+            System.out.println("Client's AES key matches the server's");
+        }
+
+        System.out.println("AES key received: " + HexFormat.of().formatHex(AESKey.getEncoded()));
+
+        /*
+        byte[] cipherText = AES.encrypt(algorithm, input, AESKey, ivParameterSpec);
+        String plainText = AES.decrypt(algorithm, cipherText, AESKey, ivParameterSpec);
+        System.out.println("Decrypted: " + plainText);
+        */
 
         Thread sendMessageToServer = createThread(dataIn, dataOut, sc, keypair, connectedPublicKey, socket, "send");
         Thread getMessageFromServer = createThread(dataIn, dataOut, sc, keypair, connectedPublicKey, socket, "get");

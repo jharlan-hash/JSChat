@@ -14,6 +14,7 @@ public class ChatUtils {
     public static final String NICK_MESSAGE = "/nick";
 
     public static boolean serverIsRunning = true;
+    public static boolean isFirstClient = true;
 
     public static void main (String[] args) throws Exception {
         String operationMode, ipAddress;
@@ -78,8 +79,8 @@ public class ChatUtils {
         return encryptedMessage;
     }
 
-    public static byte[] readPublicKeyBytes(DataInputStream dataIn) throws IOException {
-        byte[] keyBytes = new byte[422]; // 422 is always the size of the public key
+    public static byte[] readKeyBytes(DataInputStream dataIn, int length) throws IOException {
+        byte[] keyBytes = new byte[length]; // public key is usually 422 bytes long
 
         int p = 0;
         while (p < keyBytes.length) {

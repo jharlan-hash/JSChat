@@ -5,6 +5,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.HexFormat;
 import java.util.Scanner;
 
 public class Server {
@@ -18,8 +19,9 @@ public class Server {
         DataInputStream dataIn1 = new DataInputStream(clientSocket1.getInputStream());
         DataOutputStream dataOut1 = new DataOutputStream(clientSocket1.getOutputStream());
 
-        byte[] firstPublicKeyBytes = ChatUtils.readPublicKeyBytes(dataIn1);
+        byte[] firstPublicKeyBytes = ChatUtils.readKeyBytes(dataIn1, 422);
         System.out.println("First public key read");
+
 
         Socket clientSocket2 = serverSocket.accept(); 
         System.out.println("Second client connected");
@@ -27,13 +29,18 @@ public class Server {
         DataInputStream dataIn2 = new DataInputStream(clientSocket2.getInputStream());
         DataOutputStream dataOut2 = new DataOutputStream(clientSocket2.getOutputStream());
 
-        byte[] secondPublicKeyBytes = ChatUtils.readPublicKeyBytes(dataIn2);
+        byte[] secondPublicKeyBytes = ChatUtils.readKeyBytes(dataIn2, 422);
         System.out.println("Second public key read");
 
         dataOut2.write(firstPublicKeyBytes);
         System.out.println("First public key sent to second client");
         dataOut1.write(secondPublicKeyBytes);
         System.out.println("Second public key sent to first client");
+
+        byte[] AESKeyBytes = new byte[384];
+        dataIn1.readFully(AESKeyBytes);
+        dataOut1.write(AESKeyBytes);
+        dataOut2.write(AESKeyBytes);
 
         Thread thread1 = createThread(clientSocket1, dataIn1, dataOut2);
         Thread thread2 = createThread(clientSocket2, dataIn2, dataOut1);
@@ -46,8 +53,6 @@ public class Server {
 
         ChatUtils.shutdown(dataIn1, dataOut1, dataIn2, dataOut2, scanner, clientSocket1, clientSocket2, serverSocket);
     }
-
-
 
     private static Thread createThread(Socket clientSocket, DataInputStream dataIn, DataOutputStream dataOut) {
         Thread clientThread = new Thread(){

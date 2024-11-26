@@ -20,11 +20,23 @@ public class RSA{
         return cipher.doFinal(plainText.getBytes(StandardCharsets.UTF_8));
     }
 
+    public static byte[] encrypt(byte[] plainText, PublicKey publicKey) throws Exception {
+        Cipher cipher = Cipher.getInstance("RSA");
+        cipher.init(Cipher.ENCRYPT_MODE, publicKey);
+        return cipher.doFinal(plainText);
+    }
+
     public static String decrypt(byte[] cipherText, PrivateKey privateKey) throws Exception {
         Cipher cipher = Cipher.getInstance("RSA");
         cipher.init(Cipher.DECRYPT_MODE, privateKey);
         byte[] result = cipher.doFinal(cipherText);
         return new String(result);
+    }
+
+    public static byte[] decryptIntoByteArray(byte[] cipherText, PrivateKey privateKey) throws Exception {
+        Cipher cipher = Cipher.getInstance("RSA");
+        cipher.init(Cipher.DECRYPT_MODE, privateKey);
+        return cipher.doFinal(cipherText);
     }
 }
 
