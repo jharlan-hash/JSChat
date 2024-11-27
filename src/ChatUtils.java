@@ -8,6 +8,8 @@ import java.net.Socket;
 import java.security.PublicKey;
 import java.util.Scanner;
 
+import javax.crypto.SecretKey;
+
 public class ChatUtils {
     public static final String USER_PROMPT = "[you] ";
     public static final String EXIT_MESSAGE = "/exit";
@@ -61,6 +63,7 @@ public class ChatUtils {
     public static String promptUserInput(DataOutputStream dataOut, Scanner scanner) throws IOException {
         System.out.print(USER_PROMPT);
         String messageToSend = scanner.nextLine();
+
         messageToSend = messageToSend.replaceAll("[\\p{Cntrl}\\p{Cc}\\p{Cf}\\p{Co}\\p{Cn}]", ""); // remove control characters
 
         return messageToSend;
@@ -102,10 +105,11 @@ public class ChatUtils {
         return keyBytes;
     }
 
-    public static String handleUserCommands(String message, DataOutputStream dataOut, String currentNickname, PublicKey publicKey) throws Exception {
+    public static String handleUserCommands(String message, DataOutputStream dataOut, String currentNickname, SecretKey AESKey) throws Exception {
         if (message.startsWith(ChatUtils.NICK_MESSAGE)) {
             String nickname = extractNickname(message);
-            dataOut.write(RSA.encrypt("\r{Server} " + currentNickname + " changed their nickname to " + nickname, publicKey));
+            dataOut.writeInt(AES.encrypt("\r{Server} " + currentNickname + " changed their nickname to " + nickname, AESKey).length);
+            dataOut.write(AES.encrypt("\r{Server} " + currentNickname + " changed their nickname to " + nickname, AESKey));
             return nickname;
         }
 

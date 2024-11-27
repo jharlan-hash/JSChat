@@ -17,8 +17,6 @@ public class Client {
         KeyPair keypair = RSA.generateRSAKeyPair();
         SecretKey AESKey = AES.generateKey(128);
 
-        System.out.println("AES Key length: " + AESKey.getEncoded().length);
-
         socket.connect(new InetSocketAddress(ip, port), 0);
         System.out.println("Connection successful!");
 
@@ -43,8 +41,8 @@ public class Client {
             AESKey = new SecretKeySpec(RSA.decryptIntoByteArray(AESKeyBytes, keypair.getPrivate()), "AES");
         } catch (Exception ignored) { }
 
-        Thread sendMessageToServer = createThread(dataIn, dataOut, sc, keypair, connectedPublicKey, socket, AESKey, "send");
-        Thread getMessageFromServer = createThread(dataIn, dataOut, sc, keypair, connectedPublicKey, socket, AESKey, "get");
+        Thread sendMessageToServer = createThread(dataIn, dataOut, keypair, connectedPublicKey, socket, AESKey, "send");
+        Thread getMessageFromServer = createThread(dataIn, dataOut, keypair, connectedPublicKey, socket, AESKey, "get");
 
         getMessageFromServer.start();
         sendMessageToServer.start();
@@ -55,22 +53,23 @@ public class Client {
         ChatUtils.shutdown(dataIn, dataOut, null, null, sc, socket, null, null);
     }
 
-    public static Thread createThread(DataInputStream dataIn, DataOutputStream dataOut, Scanner sc, KeyPair keypair, PublicKey connectedPublicKey, Socket socket, SecretKey AESKey, String mode) {
+    public static Thread createThread(DataInputStream dataIn, DataOutputStream dataOut, KeyPair keypair, PublicKey connectedPublicKey, Socket socket, SecretKey AESKey, String mode) {
         Thread getMessageFromClient = new Thread(){
             public void run() {
                 String hostname = socket.getInetAddress().getHostName();
+                Scanner scanner = new Scanner(System.in);
                 while (true) {
                     try {
                         if (mode.equals("send")) {
-                            String message = ChatUtils.promptUserInput(dataOut, sc);
+                            String message = ChatUtils.promptUserInput(dataOut, scanner);
 
-                            hostname = ChatUtils.handleUserCommands(message, dataOut, hostname, connectedPublicKey);
+                            hostname = ChatUtils.handleUserCommands(message, dataOut, hostname, AESKey);
 
                             if (message.equals(ChatUtils.EXIT_MESSAGE)){
-                                //dataOut.write(RSA.encrypt("\r{Server} " + hostname + " has left the chat - use /exit to leave", connectedPublicKey));
+                                dataOut.writeInt(AES.encrypt("\r{Server} " + hostname + " has left the chat - use /exit to leave", AESKey).length);
+                                dataOut.write(AES.encrypt("\r{Server} " + hostname + " has left the chat - use /exit to leave", AESKey));
                                 dataIn.close();
                                 dataOut.close();
-                                sc.close();
                                 try{
                                     ChatUtils.serverIsRunning = false;
                                 } catch (Exception ignored) { return; } 
@@ -89,7 +88,16 @@ public class Client {
 
 
                         } else if (mode.equals("get")) {
-                            byte[] encryptedMessage = ChatUtils.receiveEncryptedMessage(dataIn);
+                            byte[] encryptedMessage;
+
+                            try{
+                                encryptedMessage = ChatUtils.receiveEncryptedMessage(dataIn);
+                            } catch (Exception e) {
+                                System.out.println("Server disconnected");
+                                ChatUtils.serverIsRunning = false;
+                                return;
+                            }
+
                             String message;
                             try {
                                 message = AES.decrypt(encryptedMessage, AESKey);

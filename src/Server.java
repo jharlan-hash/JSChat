@@ -37,7 +37,7 @@ public class Server {
         }
 
         dataOut1.write(AESKeyBytes);
-        dataOut2.write(AESKeyBytes);
+        dataOut2.write(AESKeyBytes); // yeah fuck you AI
         dataOut1.flush();
         dataOut2.flush();
 
