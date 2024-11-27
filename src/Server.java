@@ -1,11 +1,8 @@
-/* Server.java */
-
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.HexFormat;
 import java.util.Scanner;
 
 public class Server {
@@ -22,7 +19,6 @@ public class Server {
         byte[] firstPublicKeyBytes = ChatUtils.readKeyBytes(dataIn1, 422);
         System.out.println("First public key read");
 
-
         Socket clientSocket2 = serverSocket.accept(); 
         System.out.println("Second client connected");
         dataOut1.writeUTF("\rSecond user connected");
@@ -33,14 +29,19 @@ public class Server {
         System.out.println("Second public key read");
 
         dataOut2.write(firstPublicKeyBytes);
-        System.out.println("First public key sent to second client");
         dataOut1.write(secondPublicKeyBytes);
-        System.out.println("Second public key sent to first client");
 
         byte[] AESKeyBytes = new byte[384];
-        dataIn1.readFully(AESKeyBytes);
+        if (dataIn1.read(AESKeyBytes) < 384){
+            System.out.println("AES key not received in full.");
+        }
+
         dataOut1.write(AESKeyBytes);
         dataOut2.write(AESKeyBytes);
+        dataOut1.flush();
+        dataOut2.flush();
+
+        dataIn2.readNBytes(384); // discarding unused AES key
 
         Thread thread1 = createThread(clientSocket1, dataIn1, dataOut2);
         Thread thread2 = createThread(clientSocket2, dataIn2, dataOut1);
@@ -59,10 +60,27 @@ public class Server {
             public void run(){
                 while (ChatUtils.serverIsRunning) {
                     try {
-                        byte[] message = ChatUtils.receiveEncryptedMessage(dataIn);
-                        dataOut.write(message);
+                        int messageLength = dataIn.readInt();
+                        if (messageLength <= 0) {
+                            continue;
+                        }
+                        
+                        byte[] message = new byte[messageLength];
+                        int bytesRead = 0;
+                        while (bytesRead < messageLength) {
+                            int result = dataIn.read(message, bytesRead, messageLength - bytesRead);
+                            if (result == -1) {
+                                break;
+                            }
+                            bytesRead += result;
+                        }
+                        
+                        dataOut.writeInt(messageLength);
+                        dataOut.write(message, 0, messageLength);
+                        dataOut.flush();
                     } catch (IOException e) {
-                        e.printStackTrace();
+                        System.out.println("Client disconnected");
+                        ChatUtils.serverIsRunning = false;
                         return;
 
                     }

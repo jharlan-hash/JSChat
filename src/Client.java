@@ -1,5 +1,3 @@
-/* Client.java */
-
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.net.InetSocketAddress;
@@ -8,10 +6,8 @@ import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.PublicKey;
 import java.security.spec.X509EncodedKeySpec;
-import java.util.HexFormat;
 import java.util.Scanner;
 import javax.crypto.SecretKey;
-import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
 public class Client {
@@ -20,9 +16,8 @@ public class Client {
         Scanner sc = new Scanner(System.in); 
         KeyPair keypair = RSA.generateRSAKeyPair();
         SecretKey AESKey = AES.generateKey(128);
+
         System.out.println("AES Key length: " + AESKey.getEncoded().length);
-        IvParameterSpec ivParameterSpec = AES.generateIv();
-        String algorithm = "AES/CBC/PKCS5Padding";
 
         socket.connect(new InetSocketAddress(ip, port), 0);
         System.out.println("Connection successful!");
@@ -38,27 +33,18 @@ public class Client {
         PublicKey connectedPublicKey = keyFactory.generatePublic(new X509EncodedKeySpec(connectedPublicKeyBytes));
 
         dataOut.write(RSA.encrypt(AESKey.getEncoded(), connectedPublicKey)); // send AES key to server
-        System.out.println("AES key sent: " + HexFormat.of().formatHex(AESKey.getEncoded()));
 
         byte[] AESKeyBytes = new byte[384];
-        dataIn.readFully(AESKeyBytes);
-
-        try{
-            AESKey = new SecretKeySpec(RSA.decryptIntoByteArray(AESKeyBytes, keypair.getPrivate()), "AES");
-        } catch (Exception e) {
-            System.out.println("Client's AES key matches the server's");
+        if (dataIn.read(AESKeyBytes) < 384){
+            System.out.println("AES key not received in full.");
         }
 
-        System.out.println("AES key received: " + HexFormat.of().formatHex(AESKey.getEncoded()));
+        try {
+            AESKey = new SecretKeySpec(RSA.decryptIntoByteArray(AESKeyBytes, keypair.getPrivate()), "AES");
+        } catch (Exception ignored) { }
 
-        /*
-        byte[] cipherText = AES.encrypt(algorithm, input, AESKey, ivParameterSpec);
-        String plainText = AES.decrypt(algorithm, cipherText, AESKey, ivParameterSpec);
-        System.out.println("Decrypted: " + plainText);
-        */
-
-        Thread sendMessageToServer = createThread(dataIn, dataOut, sc, keypair, connectedPublicKey, socket, "send");
-        Thread getMessageFromServer = createThread(dataIn, dataOut, sc, keypair, connectedPublicKey, socket, "get");
+        Thread sendMessageToServer = createThread(dataIn, dataOut, sc, keypair, connectedPublicKey, socket, AESKey, "send");
+        Thread getMessageFromServer = createThread(dataIn, dataOut, sc, keypair, connectedPublicKey, socket, AESKey, "get");
 
         getMessageFromServer.start();
         sendMessageToServer.start();
@@ -69,7 +55,7 @@ public class Client {
         ChatUtils.shutdown(dataIn, dataOut, null, null, sc, socket, null, null);
     }
 
-    public static Thread createThread(DataInputStream dataIn, DataOutputStream dataOut, Scanner sc, KeyPair keypair, PublicKey connectedPublicKey, Socket socket, String mode) {
+    public static Thread createThread(DataInputStream dataIn, DataOutputStream dataOut, Scanner sc, KeyPair keypair, PublicKey connectedPublicKey, Socket socket, SecretKey AESKey, String mode) {
         Thread getMessageFromClient = new Thread(){
             public void run() {
                 String hostname = socket.getInetAddress().getHostName();
@@ -81,7 +67,7 @@ public class Client {
                             hostname = ChatUtils.handleUserCommands(message, dataOut, hostname, connectedPublicKey);
 
                             if (message.equals(ChatUtils.EXIT_MESSAGE)){
-                                dataOut.write(RSA.encrypt("\r{Server} " + hostname + " has left the chat - use /exit to leave", connectedPublicKey));
+                                //dataOut.write(RSA.encrypt("\r{Server} " + hostname + " has left the chat - use /exit to leave", connectedPublicKey));
                                 dataIn.close();
                                 dataOut.close();
                                 sc.close();
@@ -94,8 +80,9 @@ public class Client {
                             message = "\r[" + hostname + "] " + message;
 
                             if (!(message.startsWith("\r[" + hostname + "] /"))) { // checking if the message is a command
-                                // Encrypt the message
-                                byte[] encryptedMessage = RSA.encrypt(message, connectedPublicKey);
+                                byte[] encryptedMessage = AES.encrypt(message, AESKey);
+
+                                dataOut.writeInt(encryptedMessage.length);
                                 dataOut.write(encryptedMessage);
                                 dataOut.flush();
                             }
@@ -105,7 +92,7 @@ public class Client {
                             byte[] encryptedMessage = ChatUtils.receiveEncryptedMessage(dataIn);
                             String message;
                             try {
-                                message = RSA.decrypt(encryptedMessage, keypair.getPrivate());
+                                message = AES.decrypt(encryptedMessage, AESKey);
                             } catch (Exception ignored) { return; }
 
                             System.out.println(message);

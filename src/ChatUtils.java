@@ -67,14 +67,22 @@ public class ChatUtils {
     }
 
     public static byte[] receiveEncryptedMessage(DataInputStream dataIn) throws IOException {
-        byte[] encryptedMessage = new byte[384]; // 384 bytes is always the size of the encrypted message
+        int length = dataIn.readInt();
+        if (length <= 0) {
+            throw new IOException("Invalid message length: " + length);
+        }
 
-        try {
-            dataIn.read(encryptedMessage);
-        } catch (IOException e) {
-            System.out.println("Connection closed by server.");
-            return null;
-        }         
+        byte[] encryptedMessage = new byte[length];
+
+        int bytesRead = 0;
+
+        while (bytesRead < length) {
+            int result = dataIn.read(encryptedMessage, bytesRead, length - bytesRead);
+            if (result == -1) {
+                throw new IOException("End of stream reached before message was complete");
+            }
+            bytesRead += result;
+        }
 
         return encryptedMessage;
     }
