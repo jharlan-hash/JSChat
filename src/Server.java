@@ -1,4 +1,4 @@
-import java.io.DataInputStream;
+import java.io.DataInputStream; 
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -37,7 +37,7 @@ public class Server {
         }
 
         dataOut1.write(AESKeyBytes);
-        dataOut2.write(AESKeyBytes); // yeah fuck you AI
+        dataOut2.write(AESKeyBytes); 
         dataOut1.flush();
         dataOut2.flush();
 

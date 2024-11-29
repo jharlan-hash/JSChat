@@ -1,21 +1,29 @@
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
 import java.security.KeyFactory;
 import java.security.KeyPair;
+import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Scanner;
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
 public class Client {
+    private static SecretKey AESKey;
     public static void clientMode (String ip, int port) throws Exception {
         Socket socket = new Socket();
         Scanner sc = new Scanner(System.in); 
         KeyPair keypair = RSA.generateRSAKeyPair();
-        SecretKey AESKey = AES.generateKey(128);
+        AESKey = AES.generateKey(128);
 
         socket.connect(new InetSocketAddress(ip, port), 0);
         System.out.println("Connection successful!");
@@ -39,10 +47,10 @@ public class Client {
 
         try {
             AESKey = new SecretKeySpec(RSA.decryptIntoByteArray(AESKeyBytes, keypair.getPrivate()), "AES");
-        } catch (Exception ignored) { }
+        } catch (Exception ignored) {}
 
-        Thread sendMessageToServer = createThread(dataIn, dataOut, keypair, connectedPublicKey, socket, AESKey, "send");
-        Thread getMessageFromServer = createThread(dataIn, dataOut, keypair, connectedPublicKey, socket, AESKey, "get");
+        Thread sendMessageToServer = createThread(keypair, connectedPublicKey, socket, "send");
+        Thread getMessageFromServer = createThread(keypair, connectedPublicKey, socket, "get");
 
         getMessageFromServer.start();
         sendMessageToServer.start();
@@ -53,66 +61,45 @@ public class Client {
         ChatUtils.shutdown(dataIn, dataOut, null, null, sc, socket, null, null);
     }
 
-    public static Thread createThread(DataInputStream dataIn, DataOutputStream dataOut, KeyPair keypair, PublicKey connectedPublicKey, Socket socket, SecretKey AESKey, String mode) {
+    public static Thread createThread(KeyPair keypair, PublicKey connectedPublicKey, Socket socket, String mode) throws IOException {
         Thread getMessageFromClient = new Thread(){
             public void run() {
-                String hostname = socket.getInetAddress().getHostName();
-                Scanner scanner = new Scanner(System.in);
-                while (true) {
-                    try {
-                        if (mode.equals("send")) {
-                            String message = ChatUtils.promptUserInput(dataOut, scanner);
+                try{
+                    DataInputStream dataIn = new DataInputStream(socket.getInputStream()); 
+                    DataOutputStream dataOut = new DataOutputStream(socket.getOutputStream());
+                    String hostname = socket.getInetAddress().getHostName();
+                    Scanner scanner = new Scanner(System.in);
 
-                            hostname = ChatUtils.handleUserCommands(message, dataOut, hostname, AESKey);
-
-                            if (message.equals(ChatUtils.EXIT_MESSAGE)){
-                                dataOut.writeInt(AES.encrypt("\r{Server} " + hostname + " has left the chat - use /exit to leave", AESKey).length);
-                                dataOut.write(AES.encrypt("\r{Server} " + hostname + " has left the chat - use /exit to leave", AESKey));
-                                dataIn.close();
-                                dataOut.close();
-                                try{
-                                    ChatUtils.serverIsRunning = false;
-                                } catch (Exception ignored) { return; } 
-                                return;
+                    switch (mode){
+                        case "send":
+                            while (true){
+                                hostname = ChatUtils.sendMessageToServer(scanner, dataIn, dataOut, AESKey, hostname);
+                                if (hostname == null){
+                                    return;
+                                }
                             }
-
-                            message = "\r[" + hostname + "] " + message;
-
-                            if (!(message.startsWith("\r[" + hostname + "] /"))) { // checking if the message is a command
-                                byte[] encryptedMessage = AES.encrypt(message, AESKey);
-
-                                dataOut.writeInt(encryptedMessage.length);
-                                dataOut.write(encryptedMessage);
-                                dataOut.flush();
+                        case "get":
+                            while (true) {
+                                if (!ChatUtils.getMessageFromServer(scanner, dataIn, dataOut, AESKey)){
+                                    return;
+                                }
                             }
-
-
-                        } else if (mode.equals("get")) {
-                            byte[] encryptedMessage;
-
-                            try{
-                                encryptedMessage = ChatUtils.receiveEncryptedMessage(dataIn);
-                            } catch (Exception e) {
-                                System.out.println("Server disconnected");
-                                ChatUtils.serverIsRunning = false;
-                                return;
-                            }
-
-                            String message;
-                            try {
-                                message = AES.decrypt(encryptedMessage, AESKey);
-                            } catch (Exception ignored) { return; }
-
-                            System.out.println(message);
-                            System.out.print(ChatUtils.USER_PROMPT);
-                        } else {
+                        default:
                             System.out.println("Invalid mode argument.");
+                            scanner.close();
+                            dataIn.close();
+                            dataOut.close();
                             return;
-                        }
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        return;
                     }
+                } catch (
+                IOException | 
+                IllegalBlockSizeException | 
+                BadPaddingException | 
+                InvalidKeyException | 
+                InvalidAlgorithmParameterException | 
+                NoSuchAlgorithmException | 
+                NoSuchPaddingException e ) {
+                    return;
                 }
             }
         };
@@ -120,3 +107,4 @@ public class Client {
         return getMessageFromClient;
     }
 }
+

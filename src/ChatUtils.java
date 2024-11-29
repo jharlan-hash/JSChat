@@ -5,9 +5,13 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.security.PublicKey;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.util.Scanner;
-
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 
 public class ChatUtils {
@@ -60,6 +64,67 @@ public class ChatUtils {
         }
     }
 
+    public static boolean getMessageFromServer(Scanner scanner, DataInputStream dataIn, DataOutputStream dataOut, SecretKey AESKey) throws IOException {
+        byte[] encryptedMessage;
+
+        try{
+            encryptedMessage = ChatUtils.receiveEncryptedMessage(dataIn);
+        } catch (Exception e) {
+            scanner.close();
+            dataIn.close();
+            dataOut.close();
+            System.out.println("Server disconnected");
+            return false;
+        }
+
+        String message;
+        try {
+            message = AES.decrypt(encryptedMessage, AESKey);
+        } catch (Exception ignored) {
+            scanner.close();
+            dataIn.close();
+            dataOut.close();
+            return false; 
+        }
+
+        System.out.println(message);
+        System.out.print(ChatUtils.USER_PROMPT);
+        return true;
+    }
+
+    public static String sendMessageToServer(Scanner scanner, DataInputStream dataIn, DataOutputStream dataOut, SecretKey AESKey, String hostname) throws
+    IOException, 
+    IllegalBlockSizeException, 
+    BadPaddingException, 
+    InvalidKeyException, 
+    InvalidAlgorithmParameterException, 
+    NoSuchAlgorithmException, 
+    NoSuchPaddingException {
+        String message = ChatUtils.promptUserInput(dataOut, scanner);
+
+        if (message.startsWith(ChatUtils.NICK_MESSAGE)){
+            hostname = ChatUtils.changeNickname(message, dataOut, hostname, AESKey);
+        } else if (message.equals(ChatUtils.EXIT_MESSAGE)){
+            byte[] exitNotification = AES.encrypt("\r{Server} " + hostname + " has left the chat - use /exit to leave", AESKey);
+            dataOut.writeInt(exitNotification.length);
+            dataOut.write(exitNotification);
+            dataIn.close();
+            dataOut.close();
+            return null;
+        }
+
+        if (!(message.startsWith("/"))) { // checking if the message is a command
+            message = "\r[" + hostname + "] " + message;
+            byte[] encryptedMessage = AES.encrypt(message, AESKey);
+
+            dataOut.writeInt(encryptedMessage.length);
+            dataOut.write(encryptedMessage);
+            dataOut.flush();
+        }
+
+        return hostname;
+    }
+
     public static String promptUserInput(DataOutputStream dataOut, Scanner scanner) throws IOException {
         System.out.print(USER_PROMPT);
         String messageToSend = scanner.nextLine();
@@ -105,19 +170,19 @@ public class ChatUtils {
         return keyBytes;
     }
 
-    public static String handleUserCommands(String message, DataOutputStream dataOut, String currentNickname, SecretKey AESKey) throws Exception {
-        if (message.startsWith(ChatUtils.NICK_MESSAGE)) {
-            String nickname = extractNickname(message);
-            dataOut.writeInt(AES.encrypt("\r{Server} " + currentNickname + " changed their nickname to " + nickname, AESKey).length);
-            dataOut.write(AES.encrypt("\r{Server} " + currentNickname + " changed their nickname to " + nickname, AESKey));
-            return nickname;
-        }
-
-        return currentNickname;
-    }
-
-    public static String extractNickname (String message){
-        return message.split(" ")[1];
+    public static String changeNickname(String message, DataOutputStream dataOut, String currentNickname, SecretKey AESKey) throws 
+    IOException, 
+    IllegalBlockSizeException, 
+    BadPaddingException, 
+    InvalidKeyException, 
+    InvalidAlgorithmParameterException, 
+    NoSuchAlgorithmException, 
+    NoSuchPaddingException {
+        String nickname = message.split(" ")[1];
+        byte[] nicknameNotification = AES.encrypt("\r{Server} " + currentNickname + " changed their nickname to " + nickname, AESKey);
+        dataOut.writeInt(nicknameNotification.length);
+        dataOut.write(nicknameNotification);
+        return nickname;
     }
 
     private static String getLocalIPAddress() {
