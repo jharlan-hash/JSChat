@@ -24,14 +24,7 @@ public class RSA{
         return cipher.doFinal(plainText);
     }
 
-    public static String decrypt(byte[] cipherText, PrivateKey privateKey) throws Exception {
-        Cipher cipher = Cipher.getInstance("RSA");
-        cipher.init(Cipher.DECRYPT_MODE, privateKey);
-        byte[] result = cipher.doFinal(cipherText);
-        return new String(result);
-    }
-
-    public static byte[] decryptIntoByteArray(byte[] cipherText, PrivateKey privateKey) throws Exception {
+    public static byte[] decrypt(byte[] cipherText, PrivateKey privateKey) throws Exception {
         Cipher cipher = Cipher.getInstance("RSA");
         cipher.init(Cipher.DECRYPT_MODE, privateKey);
         return cipher.doFinal(cipherText);

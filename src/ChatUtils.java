@@ -120,6 +120,9 @@ public class ChatUtils {
             dataOut.writeInt(encryptedMessage.length);
             dataOut.write(encryptedMessage);
             dataOut.flush();
+        } else if (!(message.equals(ChatUtils.EXIT_MESSAGE) | message.startsWith(ChatUtils.NICK_MESSAGE))) {
+            System.out.println("Invalid command.");
+            System.out.println("Commands: /exit, /nick <newNickname>");
         }
 
         return hostname;
@@ -172,13 +175,23 @@ public class ChatUtils {
 
     public static String changeNickname(String message, DataOutputStream dataOut, String currentNickname, SecretKey AESKey) throws 
     IOException, 
-    IllegalBlockSizeException, 
     BadPaddingException, 
-    InvalidKeyException, 
+    IllegalBlockSizeException, 
     InvalidAlgorithmParameterException, 
+    InvalidKeyException, 
     NoSuchAlgorithmException, 
     NoSuchPaddingException {
-        String nickname = message.split(" ")[1];
+        String[] nicknameArray = message.split(" ");
+        String nickname;
+
+        if (nicknameArray.length != 2) {
+            System.out.println("Invalid /nick usage.");
+            System.out.println("Usage: /nick <newNickname>");
+            return currentNickname;
+        } else {
+            nickname = nicknameArray[1];
+        }
+
         byte[] nicknameNotification = AES.encrypt("\r{Server} " + currentNickname + " changed their nickname to " + nickname, AESKey);
         dataOut.writeInt(nicknameNotification.length);
         dataOut.write(nicknameNotification);
@@ -206,13 +219,13 @@ public class ChatUtils {
         ServerSocket serverSocket
     ) throws IOException {
         System.out.println("Shutting down...");
-        closeQuietly(dataIn1);
-        closeQuietly(dataOut1);
-        closeQuietly(dataIn2);
-        closeQuietly(dataOut2);
-        closeQuietly(scanner);
         closeQuietly(clientSocket1);
         closeQuietly(clientSocket2);
+        closeQuietly(dataIn1);
+        closeQuietly(dataIn2);
+        closeQuietly(dataOut1);
+        closeQuietly(dataOut2);
+        closeQuietly(scanner);
         closeQuietly(serverSocket);
     }
 

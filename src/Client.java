@@ -46,7 +46,7 @@ public class Client {
         }
 
         try {
-            AESKey = new SecretKeySpec(RSA.decryptIntoByteArray(AESKeyBytes, keypair.getPrivate()), "AES");
+            AESKey = new SecretKeySpec(RSA.decrypt(AESKeyBytes, keypair.getPrivate()), "AES");
         } catch (Exception ignored) {}
 
         Thread sendMessageToServer = createThread(keypair, connectedPublicKey, socket, "send");
