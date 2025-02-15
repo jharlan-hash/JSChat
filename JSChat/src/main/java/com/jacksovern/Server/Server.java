@@ -4,28 +4,12 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
-import java.net.Socket;
 
 public class Server {
     private static int port = 1000;
     private static ServerClient client1;
     private static ServerClient client2;
     private static ServerSocket serverSocket;
-
-    //public static void main() {
-    //    try {
-    //        serverMode(ServerUtils.portNumber);
-    //    } catch (IOException e) {
-    //        System.out.println("An error occurred while setting up the server.");
-    //        e.printStackTrace();
-    //    } catch (InterruptedException e) {
-    //        System.out.println("An error occurred while running the server.");
-    //        e.printStackTrace();
-    //    } catch (Exception e) {
-    //        System.out.println("An unknown error occurred.");
-    //        e.printStackTrace();
-    //    }
-    //}
 
     public Server(int portNumber) {
         port = portNumber;
@@ -48,7 +32,7 @@ public class Server {
                 client2.getDataIn().close();
                 client2.getDataOut().close();
             } catch (Exception e) {
-                System.out.println("error closing data lines, force closing");
+                System.out.println("error closing data streams, force closing");
                 System.exit(1);
             }
         }
@@ -76,7 +60,6 @@ public class Server {
         client1.getDataOut().flush();
         client2.getDataOut().flush();
 
-
         Thread thread1 = createThread(client1.getDataIn(), client2.getDataOut());
         Thread thread2 = createThread(client2.getDataIn(), client1.getDataOut());
 
@@ -86,7 +69,8 @@ public class Server {
         thread1.join();
         thread2.join();
 
-        ServerUtils.shutdown(client1.getDataIn(), client1.getDataOut(), client2.getDataIn(), client2.getDataOut(), null, null, null, serverSocket);
+        ServerUtils.shutdown(client1.getDataIn(), client1.getDataOut(), client2.getDataIn(), client2.getDataOut(), null,
+                null, null, serverSocket);
     }
 
     public static Thread createThread(DataInputStream dataIn, DataOutputStream dataOut) {
@@ -99,25 +83,33 @@ public class Server {
                             continue;
                         }
 
-                        byte[] message = new byte[messageLength];
+                        byte[] messageBytes = new byte[messageLength];
                         int bytesRead = 0;
                         while (bytesRead < messageLength) {
-                            int result = dataIn.read(message, bytesRead, messageLength - bytesRead);
+                            int result = dataIn.read(messageBytes, bytesRead, messageLength - bytesRead);
                             if (result == -1) {
                                 break;
                             }
                             bytesRead += result;
                         }
 
-                        dataOut.writeInt(messageLength);
-                        dataOut.write(message, 0, messageLength);
-                        dataOut.flush();
+                        writeMessage(new Message(messageBytes));
                     } catch (IOException e) {
                         System.out.println("Client disconnected");
                         ServerUtils.serverIsRunning = false;
                         return;
 
                     }
+                }
+            }
+
+            public void writeMessage(Message message) {
+                try {
+                    dataOut.writeInt(message.getMessageLength()); // equivalent to message.length
+                    dataOut.write(message.getMessageBytes());
+                    dataOut.flush();
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
             }
         };
