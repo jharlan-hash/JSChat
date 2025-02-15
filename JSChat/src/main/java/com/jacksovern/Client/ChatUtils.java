@@ -1,3 +1,5 @@
+package com.jacksovern.Client;
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -17,7 +19,6 @@ public class ChatUtils {
     public static final String EXIT_MESSAGE = "/exit";
     public static final String NICK_MESSAGE = "/nick";
 
-    public static boolean serverIsRunning = true;
     public static boolean isFirstClient = true;
     public static int portNumber = 1000;
 
@@ -38,6 +39,7 @@ public class ChatUtils {
         try {
             message = AES.decrypt(encryptedMessage, AESKey);
         } catch (Exception ignored) {
+            System.out.println("error decrypting message");
             scanner.close();
             dataIn.close();
             dataOut.close();
@@ -122,11 +124,14 @@ public class ChatUtils {
         while (p < keyBytes.length) {
             int read = dataIn.read(keyBytes);
             if (read == -1) {
-                throw new RuntimeException("Premature end of stream");
+                throw new RuntimeException("erroneous key value in ChatUtils");
             }
             p += read;
         }
 
+        if (p != 422) {
+            System.out.println("Erroneous key value received: " + p);
+        }
         return keyBytes;
     }
 

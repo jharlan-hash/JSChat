@@ -1,3 +1,5 @@
+package com.jacksovern.Client;
+
 import java.security.NoSuchAlgorithmException;
 import java.security.InvalidKeyException;
 import java.security.InvalidAlgorithmParameterException;

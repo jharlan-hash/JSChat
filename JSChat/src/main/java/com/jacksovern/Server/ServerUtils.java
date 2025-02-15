@@ -1,20 +1,14 @@
+package com.jacksovern.Server;
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
 import java.util.Scanner;
-import javax.crypto.BadPaddingException;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
-import javax.crypto.SecretKey;
 
 public class ServerUtils {
+    // why are these here
     public static final String USER_PROMPT = "[you] ";
     public static final String EXIT_MESSAGE = "/exit";
     public static final String NICK_MESSAGE = "/nick";
@@ -31,7 +25,7 @@ public class ServerUtils {
         while (p < keyBytes.length) {
             int read = dataIn.read(keyBytes);
             if (read == -1) {
-                throw new RuntimeException("Premature end of stream");
+                throw new RuntimeException("Premature end of stream in ServerUtils"); 
             }
             p += read;
         }
@@ -39,6 +33,7 @@ public class ServerUtils {
         return keyBytes;
     }
 
+    // this is a ridiculous way to do this
     public static void shutdown(
         DataInputStream dataIn1, 
         DataOutputStream dataOut1, 

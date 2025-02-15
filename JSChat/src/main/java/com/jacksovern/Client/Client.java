@@ -1,3 +1,5 @@
+package com.jacksovern.Client;
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -20,16 +22,19 @@ import javax.crypto.spec.SecretKeySpec;
 
 public class Client {
     private static SecretKey AESKey;
-    private static String ipAddress = "149.130.213.82"; // hardcoded oracle vm ip address
+    private static String ipAddress = "localhost";
+    private static Scanner scanner = new Scanner(System.in);
 
-    public static void main(String[] args) throws Exception {
-        if (args.length >= 2) {
-            if (args[0].equals("custom")) {
-                ipAddress = args[1];
-            }
+    public static void main(String[] args) {
+        if (args.length >= 1) {
+            ipAddress = args[1];
         }
 
-        clientMode(ipAddress, ChatUtils.portNumber);
+        try {
+            clientMode(ipAddress, ChatUtils.portNumber);
+        } catch (Exception e) {
+            System.out.println("Error: " + e.getMessage());
+        }
     }
 
     /**
@@ -37,22 +42,21 @@ public class Client {
      * @param port
      * @throws Exception
      *
-     * Starts the client mode of the chat application.
+     *                   Starts the client mode of the chat application.
      */
     public static void clientMode(String ip, int port) throws Exception {
         Socket socket = new Socket();
-        Scanner sc = new Scanner(System.in);
         KeyPair keypair = RSA.generateRSAKeyPair();
         AESKey = AES.generateKey(128);
 
-        socket.connect(new InetSocketAddress(ip, port), 0); // blocking operation
+        socket.connect(new InetSocketAddress(ip, port), 0);
         System.out.println("Connection successful!");
 
         DataInputStream dataIn = new DataInputStream(socket.getInputStream());
         DataOutputStream dataOut = new DataOutputStream(socket.getOutputStream());
 
         dataOut.write(keypair.getPublic().getEncoded()); // send public key to server
-        
+
         // Steps to establish a secure connection with the server:
         // 1. Read the public key of the other party
         // 2. Generate an AES key
@@ -88,7 +92,7 @@ public class Client {
         getMessageFromServer.join();
         sendMessageToServer.join();
 
-        ChatUtils.shutdown(dataIn, dataOut, null, null, sc, socket, null, null);
+        ChatUtils.shutdown(dataIn, dataOut, null, null, scanner, socket, null, null);
     }
 
     public static Thread createThread(KeyPair keypair, PublicKey connectedPublicKey, Socket socket, String mode)
@@ -99,7 +103,6 @@ public class Client {
                     DataInputStream dataIn = new DataInputStream(socket.getInputStream());
                     DataOutputStream dataOut = new DataOutputStream(socket.getOutputStream());
                     String hostname = socket.getInetAddress().getHostName();
-                    Scanner scanner = new Scanner(System.in);
 
                     switch (mode) {
                         case "send":
@@ -115,8 +118,6 @@ public class Client {
                                     return;
                                 }
                             }
-                        default:
-                            return;
                     }
                 } catch (
                         IOException | IllegalBlockSizeException | BadPaddingException | InvalidKeyException

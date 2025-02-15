@@ -1,3 +1,5 @@
+package com.jacksovern.Client;
+
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.PrivateKey;
