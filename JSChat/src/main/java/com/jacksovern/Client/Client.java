@@ -53,23 +53,26 @@ public class Client {
         dataOut.write(keypair.getPublic().getEncoded()); // send public key to server
 
         /*
-        * Steps to establish a secure connection with the server:
-        * 1. Generate public and private keypair
-        * 2. Send public key to server
-        * 3. Receive encrypted AES key
-        * 4. Decrypt AES key
-        * 5. Use AES key for encrypting messages
-        */
+         * Steps to establish a secure connection with the server:
+         * 1. Generate public and private keypair
+         * 2. Send public key to server
+         * 3. Receive encrypted AES key
+         * 4. Decrypt AES key
+         * 5. Use AES key for encrypting messages
+         */
 
         /*
-        * byte[] connectedPublicKeyBytes = ChatUtils.readKeyBytes(dataIn, 422);
-        *
-        * // Convert the byte array to a PublicKey object
-        * KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-        * PublicKey connectedPublicKey = keyFactory.generatePublic(new X509EncodedKeySpec(connectedPublicKeyBytes));
-        *
-        * dataOut.write(RSA.encrypt(AESKey.getEncoded(), connectedPublicKey)); // send AES key to server
-        */
+         * byte[] connectedPublicKeyBytes = ChatUtils.readKeyBytes(dataIn, 422);
+         *
+         * // Convert the byte array to a PublicKey object
+         * KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+         *
+         * PublicKey connectedPublicKey = keyFactory.generatePublic(new
+         * X509EncodedKeySpec(connectedPublicKeyBytes));
+         *
+         * dataOut.write(RSA.encrypt(AESKey.getEncoded(), connectedPublicKey)); // send
+         * AES key to server
+         */
 
         byte[] AESKeyBytes = new byte[384];
         if (dataIn.read(AESKeyBytes) < 384) {

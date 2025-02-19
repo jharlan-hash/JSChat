@@ -1,7 +1,5 @@
 package com.jacksovern.Server;
 
-import com.jacksovern.Client.AES;
-import com.jacksovern.Client.RSA;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -12,17 +10,21 @@ import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.jacksovern.Client.AES;
+import com.jacksovern.Client.RSA;
+
 public class Server {
     private static int port = 1000;
     private static List<ServerClient> clients = new ArrayList<>();
     private static ServerSocket serverSocket;
-    private static byte[] AESKeyBytes;   
+    private static byte[] AESKeyBytes;
 
     /**
      * @param portNumber
      */
     public Server(int portNumber) {
         port = portNumber;
+
         try {
             System.out.println("Server started");
 
@@ -32,25 +34,32 @@ public class Server {
             serverSocket = new ServerSocket(port);
             System.out.println("Listening for clients...");
 
-            // Accept first client
-            clients.add(new ServerClient(serverSocket.accept(), 0));
-            System.out.println("Client 1 connected");
+            // thread to continuously accept clients
+            new Thread(() -> {
+                try {
+                    while (true) {
+                        clients.add(new ServerClient(serverSocket.accept(), clients.size()));
+                        System.out.println("Client " + clients.size() + " connected");
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }).start();
 
-            // Accept second client
-            clients.add(new ServerClient(serverSocket.accept(), 1));
-            System.out.println("Client 2 connected");
-
-            // Start server mode to handle both clients
-            serverMode();
-
+            while (true) {
+                if (clients.size() >= 2) {
+                    serverMode();
+                }
+            }
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();
         } finally {
             try {
                 System.out.println("Closing server...");
                 serverSocket.close();
-                clients.get(0).closeAll();
-                clients.get(1).closeAll();
+                for (ServerClient client : clients) {
+                    client.closeAll();
+                }
             } catch (Exception e) {
                 System.out.println("Error closing data streams, force closing");
                 System.exit(1);
@@ -63,11 +72,9 @@ public class Server {
         byte[] publicKeyBytes = new byte[422]; // Buffer for public key
 
         publicKeyBytes = readKeyBytes(client.getDataIn(), 422);
-
     }
 
     // TODO: change this to make it work with arbitrary number of clients
-    // hint - loops loops loops
     public static void serverMode() throws IOException, InterruptedException {
         System.out.println("Starting server mode...");
 
