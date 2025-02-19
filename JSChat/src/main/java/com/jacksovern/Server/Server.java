@@ -11,197 +11,145 @@ public class Server {
     private static ServerClient client2;
     private static ServerSocket serverSocket;
 
+    /**
+     * @param portNumber
+     */
     public Server(int portNumber) {
         port = portNumber;
         try {
             System.out.println("Server started");
             serverSocket = new ServerSocket(port);
-            System.out.println("listening for clients");
-            client1 = new ServerClient(serverSocket.accept(), 0); // this will eventually be a loop
-            System.out.println("client 1 connected");
+            System.out.println("Listening for clients...");
+            
+            // Accept first client
+            client1 = new ServerClient(serverSocket.accept(), 0);
+            System.out.println("Client 1 connected");
+            
+            // Accept second client
             client2 = new ServerClient(serverSocket.accept(), 1);
-            System.out.println("client 2 connected");
-
+            System.out.println("Client 2 connected");
+            
+            // Start server mode to handle both clients
             serverMode(1000);
-
-            //Thread thread1 = new Thread() {
-            //    public void run() {
-            //        try {
-            //            handleClient(client1);
-            //        } catch (IOException e) {
-            //            e.printStackTrace();
-            //        }
-            //    }
-            //};
-            //
-            //Thread thread2 = new Thread() {
-            //    public void run() {
-            //        try {
-            //            handleClient(client2);
-            //        } catch (IOException e) {
-            //            e.printStackTrace();
-            //        }
-            //    }
-            //};
-            //
-            //thread1.start();
-            //thread2.start();
-            //
-            //thread1.join();
-            //thread2.join();
 
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();
         } finally {
             try {
+                System.out.println("Closing server...");
                 serverSocket.close();
                 client1.closeAll();
                 client2.closeAll();
             } catch (Exception e) {
-                System.out.println("error closing data streams, force closing");
+                System.out.println("Error closing data streams, force closing");
                 System.exit(1);
             }
         }
     }
 
-    public void handleClient(ServerClient client) throws IOException {
-        int id = client.getClientID();
-        byte[] AESKeyBytes = new byte[384];
-        ServerClient thisClient;
-        ServerClient otherClient;
-
-        System.out.println("client id: " + id);
-
-        if (id == 0) {
-            thisClient = client1;
-            otherClient = client2;
-        } else {
-            thisClient = client2;
-            otherClient = client1;
-
-        }
-
-        byte[] publicKeyBytes = readKeyBytes(thisClient.getDataIn(), 422);
-        System.out.println("Public key read");
-
-        otherClient.getDataOut().write(publicKeyBytes); // swapping public key bytes
-        //
-        if (id == 0) { // client must be first - reading AES key
-            if (client.getDataIn().read(AESKeyBytes) < 384) {
-                System.out.println("AES key not received in full.");
-            }
-        } else { // client must be second - aes key not needed so it is discarded
-            client.getDataIn().readNBytes(384);
-        }
-
-        thisClient.getDataOut().write(publicKeyBytes);
-
-        otherClient.getDataOut().write(AESKeyBytes);
-        thisClient.getDataOut().flush();
-
-        Thread thread = createThread(thisClient.getDataIn(), otherClient.getDataOut());
-
-        thread.start();
-
-        try {
-            thread.join();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
-    }
-
     public static void serverMode(int port) throws IOException, InterruptedException {
+        System.out.println("Starting server mode...");
+        
+        // Read public keys from both clients
         byte[] firstPublicKeyBytes = readKeyBytes(client1.getDataIn(), 422);
         System.out.println("First public key read");
 
         byte[] secondPublicKeyBytes = readKeyBytes(client2.getDataIn(), 422);
         System.out.println("Second public key read");
 
+        // Exchange public keys between the clients
         client2.getDataOut().write(firstPublicKeyBytes);
         client1.getDataOut().write(secondPublicKeyBytes);
+        System.out.println("Public keys exchanged");
 
+        // Read AES key from client1
         byte[] AESKeyBytes = new byte[384];
         if (client1.getDataIn().read(AESKeyBytes) < 384) {
             System.out.println("AES key not received in full.");
+        } else {
+            System.out.println("AES key received successfully");
         }
 
-        client2.getDataIn().readNBytes(384); // discarding unused AES key
+        // Discard AES key from client2
+        client2.getDataIn().readNBytes(384);
+        System.out.println("AES key discarded from client2");
 
+        // Share the AES key with both clients
         client1.getDataOut().write(AESKeyBytes);
         client2.getDataOut().write(AESKeyBytes);
         client1.getDataOut().flush();
         client2.getDataOut().flush();
+        System.out.println("AES key distributed to both clients");
 
+        // Start message forwarding threads between clients
         Thread thread1 = createThread(client1.getDataIn(), client2.getDataOut());
         Thread thread2 = createThread(client2.getDataIn(), client1.getDataOut());
 
+        System.out.println("Starting message forwarding threads...");
         thread1.start();
         thread2.start();
 
         thread1.join();
         thread2.join();
-
+        System.out.println("Message forwarding threads finished");
     }
 
     public static byte[] readKeyBytes(DataInputStream dataIn, int length) throws IOException {
-        byte[] keyBytes = new byte[length]; // public key is usually 422 bytes long
-
+        byte[] keyBytes = new byte[length]; // Buffer for public key
         int p = 0;
         while (p < keyBytes.length) {
-            int read = dataIn.read(keyBytes);
+            int read = dataIn.read(keyBytes, p, keyBytes.length - p);
             if (read == -1) {
                 throw new RuntimeException("Premature end of stream in ServerUtils");
             }
             p += read;
         }
-
+        System.out.println("Successfully read key bytes");
         return keyBytes;
     }
 
     public static Thread createThread(DataInputStream dataIn, DataOutputStream dataOut) {
-        Thread clientThread = new Thread() {
-            public void run() {
-                boolean serverIsRunning = true;
-                while (serverIsRunning) {
-                    try {
-                        int messageLength = dataIn.readInt();
-                        if (messageLength <= 0) {
-                            continue;
-                        }
-
-                        byte[] messageBytes = new byte[messageLength];
-                        int bytesRead = 0;
-                        while (bytesRead < messageLength) {
-                            int result = dataIn.read(messageBytes, bytesRead, messageLength - bytesRead);
-                            if (result == -1) {
-                                break;
-                            }
-                            bytesRead += result;
-                        }
-
-                        writeMessage(new Message(messageBytes));
-                    } catch (IOException e) {
-                        System.out.println("Client disconnected");
-                        serverIsRunning = false;
-                        return;
-
-                    }
-                }
-            }
-
-            public void writeMessage(Message message) {
+        return new Thread(() -> {
+            boolean serverIsRunning = true;
+            while (serverIsRunning) {
                 try {
-                    dataOut.writeInt(message.getMessageLength()); // equivalent to message.length
-                    dataOut.write(message.getMessageBytes());
-                    dataOut.flush();
+                    // Read message length
+                    int messageLength = dataIn.readInt();
+                    if (messageLength <= 0) {
+                        continue;
+                    }
+                    // Read message data
+                    byte[] messageBytes = new byte[messageLength];
+                    int bytesRead = 0;
+                    while (bytesRead < messageLength) {
+                        int result = dataIn.read(messageBytes, bytesRead, messageLength - bytesRead);
+                        if (result == -1) {
+                            break;
+                        }
+                        bytesRead += result;
+                    }
+                    System.out.println("Forwarding message of length: " + messageLength);
+                    
+                    // Forward message to the other client
+                    writeMessage(new Message(messageBytes), dataOut);
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    System.out.println("Client disconnected");
+                    serverIsRunning = false;
                 }
             }
-        };
-
-        return clientThread;
+        });
     }
 
+    private static void writeMessage(Message message, DataOutputStream dataOut) {
+        try {
+            // Send message length followed by message bytes
+            dataOut.writeInt(message.getMessageLength());
+            dataOut.write(message.getMessageBytes());
+            dataOut.flush();
+            System.out.println("Message sent successfully");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 }
+
