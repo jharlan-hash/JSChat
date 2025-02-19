@@ -1,9 +1,14 @@
 package com.jacksovern.Server;
 
+import com.jacksovern.Client.AES;
+import com.jacksovern.Client.RSA;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
+import java.security.KeyFactory;
+import java.security.PublicKey;
+import java.security.spec.X509EncodedKeySpec;
 
 public class Server {
     private static int port = 1000;
@@ -20,15 +25,15 @@ public class Server {
             System.out.println("Server started");
             serverSocket = new ServerSocket(port);
             System.out.println("Listening for clients...");
-            
+
             // Accept first client
             client1 = new ServerClient(serverSocket.accept(), 0);
             System.out.println("Client 1 connected");
-            
+
             // Accept second client
             client2 = new ServerClient(serverSocket.accept(), 1);
             System.out.println("Client 2 connected");
-            
+
             // Start server mode to handle both clients
             serverMode(1000);
 
@@ -49,7 +54,7 @@ public class Server {
 
     public static void serverMode(int port) throws IOException, InterruptedException {
         System.out.println("Starting server mode...");
-        
+
         // Read public keys from both clients
         byte[] firstPublicKeyBytes = readKeyBytes(client1.getDataIn(), 422);
         System.out.println("First public key read");
@@ -57,26 +62,22 @@ public class Server {
         byte[] secondPublicKeyBytes = readKeyBytes(client2.getDataIn(), 422);
         System.out.println("Second public key read");
 
-        // Exchange public keys between the clients
-        client2.getDataOut().write(firstPublicKeyBytes);
-        client1.getDataOut().write(secondPublicKeyBytes);
-        System.out.println("Public keys exchanged");
+        byte[] AESKeyBytes = AES.generateKey(128).getEncoded();
+        System.out.println("AES key generated");
 
-        // Read AES key from client1
-        byte[] AESKeyBytes = new byte[384];
-        if (client1.getDataIn().read(AESKeyBytes) < 384) {
-            System.out.println("AES key not received in full.");
-        } else {
-            System.out.println("AES key received successfully");
+        PublicKey firstPublicKey = null;
+        PublicKey secondPublicKey = null;
+        try {
+            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+            firstPublicKey = keyFactory.generatePublic(new X509EncodedKeySpec(firstPublicKeyBytes));
+            secondPublicKey = keyFactory.generatePublic(new X509EncodedKeySpec(secondPublicKeyBytes));
+        } catch (Exception e) {
+            e.printStackTrace();
         }
 
-        // Discard AES key from client2
-        client2.getDataIn().readNBytes(384);
-        System.out.println("AES key discarded from client2");
-
         // Share the AES key with both clients
-        client1.getDataOut().write(AESKeyBytes);
-        client2.getDataOut().write(AESKeyBytes);
+        client1.getDataOut().write(RSA.encrypt(AESKeyBytes, firstPublicKey));
+        client2.getDataOut().write(RSA.encrypt(AESKeyBytes, secondPublicKey));
         client1.getDataOut().flush();
         client2.getDataOut().flush();
         System.out.println("AES key distributed to both clients");
@@ -94,6 +95,13 @@ public class Server {
         System.out.println("Message forwarding threads finished");
     }
 
+    /**
+     * @param dataIn
+     * @param length
+     * @return byte array
+     * @throws IOException
+     *                     This method reads & returns the key bytes from the client
+     */
     public static byte[] readKeyBytes(DataInputStream dataIn, int length) throws IOException {
         byte[] keyBytes = new byte[length]; // Buffer for public key
         int p = 0;
@@ -129,7 +137,7 @@ public class Server {
                         bytesRead += result;
                     }
                     System.out.println("Forwarding message of length: " + messageLength);
-                    
+
                     // Forward message to the other client
                     writeMessage(new Message(messageBytes), dataOut);
                 } catch (IOException e) {
@@ -152,4 +160,3 @@ public class Server {
         }
     }
 }
-

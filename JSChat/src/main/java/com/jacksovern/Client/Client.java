@@ -7,11 +7,8 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
-import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
-import java.security.PublicKey;
-import java.security.spec.X509EncodedKeySpec;
 import java.util.Scanner;
 
 import javax.crypto.BadPaddingException;
@@ -41,13 +38,11 @@ public class Client {
      * @param ip
      * @param port
      * @throws Exception
-     *
      *                   Starts the client mode of the chat application.
      */
     public static void clientMode(String ip, int port) throws Exception {
         Socket socket = new Socket();
         KeyPair keypair = RSA.generateRSAKeyPair();
-        AESKey = AES.generateKey(128);
 
         socket.connect(new InetSocketAddress(ip, port), 0);
         System.out.println("Connection successful!");
@@ -57,21 +52,24 @@ public class Client {
 
         dataOut.write(keypair.getPublic().getEncoded()); // send public key to server
 
-        // Steps to establish a secure connection with the server:
-        // 1. Read the public key of the other party
-        // 2. Generate an AES key
-        // 3. Encrypt the AES key with the other party's public key
-        // 4. Send the encrypted AES key to the other party
-        // 5. Receive the encrypted AES key from the other party
-        // 6. Decrypt the AES key with the private key
-        // 7. Use the AES key to encrypt and decrypt messages
+        /*
+        * Steps to establish a secure connection with the server:
+        * 1. Generate public and private keypair
+        * 2. Send public key to server
+        * 3. Receive encrypted AES key
+        * 4. Decrypt AES key
+        * 5. Use AES key for encrypting messages
+        */
 
-        byte[] connectedPublicKeyBytes = ChatUtils.readKeyBytes(dataIn, 422);
-
-        KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-        PublicKey connectedPublicKey = keyFactory.generatePublic(new X509EncodedKeySpec(connectedPublicKeyBytes));
-
-        dataOut.write(RSA.encrypt(AESKey.getEncoded(), connectedPublicKey)); // send AES key to server
+        /*
+        * byte[] connectedPublicKeyBytes = ChatUtils.readKeyBytes(dataIn, 422);
+        *
+        * // Convert the byte array to a PublicKey object
+        * KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+        * PublicKey connectedPublicKey = keyFactory.generatePublic(new X509EncodedKeySpec(connectedPublicKeyBytes));
+        *
+        * dataOut.write(RSA.encrypt(AESKey.getEncoded(), connectedPublicKey)); // send AES key to server
+        */
 
         byte[] AESKeyBytes = new byte[384];
         if (dataIn.read(AESKeyBytes) < 384) {
@@ -83,8 +81,8 @@ public class Client {
         } catch (Exception ignored) {
         }
 
-        Thread sendMessageToServer = createThread(keypair, connectedPublicKey, socket, "send");
-        Thread getMessageFromServer = createThread(keypair, connectedPublicKey, socket, "get");
+        Thread sendMessageToServer = createThread(keypair, socket, "send");
+        Thread getMessageFromServer = createThread(keypair, socket, "get");
 
         getMessageFromServer.start(); // start the thread to receive messages from the server
         sendMessageToServer.start(); // start the thread to send messages to the server
@@ -92,10 +90,11 @@ public class Client {
         getMessageFromServer.join();
         sendMessageToServer.join();
 
+        // this method pisses me off o_O
         ChatUtils.shutdown(dataIn, dataOut, null, null, scanner, socket, null, null);
     }
 
-    public static Thread createThread(KeyPair keypair, PublicKey connectedPublicKey, Socket socket, String mode)
+    public static Thread createThread(KeyPair keypair, Socket socket, String mode)
             throws IOException {
         Thread getMessageFromClient = new Thread() {
             public void run() {

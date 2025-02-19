@@ -12,23 +12,28 @@ import javax.crypto.NoSuchPaddingException;
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 
-
-class AES {
+public class AES {
     /*
-        String input = "adsfjkhlasfhdkalsjhflafkjhaslkfhaslkdfjhsflkajhflkasdfhjaldskjfahfdkl";
-        SecretKey key = generateKey(128);
-        byte[] cipherText = encrypt(input, key);
-        String plainText = decrypt(cipherText, key);
-        System.out.println("Decrypted: " + plainText);
-    */
+     * String input =
+     * "adsfjkhlasfhdkalsjhflafkjhaslkfhaslkdfjhsflkajhflkasdfhjaldskjfahfdkl";
+     * SecretKey key = generateKey(128);
+     * byte[] cipherText = encrypt(input, key);
+     * String plainText = decrypt(cipherText, key);
+     * System.out.println("Decrypted: " + plainText);
+     */
 
     public final static String algorithm = "AES/CBC/PKCS5Padding";
 
-    public static SecretKey generateKey(int n) throws NoSuchAlgorithmException {
-        KeyGenerator keyGenerator = KeyGenerator.getInstance("AES");
-        keyGenerator.init(n);
-        SecretKey key = keyGenerator.generateKey();
-        return key;
+    public static SecretKey generateKey(int n) {
+        try {
+            KeyGenerator keyGenerator = KeyGenerator.getInstance("AES");
+            keyGenerator.init(n);
+            SecretKey key = keyGenerator.generateKey();
+            return key;
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+            return null; 
+        }
     }
 
     public static IvParameterSpec generateIv() {
@@ -38,8 +43,8 @@ class AES {
     }
 
     public static byte[] encrypt(String input, SecretKey key) throws NoSuchPaddingException, NoSuchAlgorithmException,
-    InvalidAlgorithmParameterException, InvalidKeyException,
-    BadPaddingException, IllegalBlockSizeException {
+            InvalidAlgorithmParameterException, InvalidKeyException,
+            BadPaddingException, IllegalBlockSizeException {
 
         Cipher cipher = Cipher.getInstance(algorithm);
         cipher.init(Cipher.ENCRYPT_MODE, key, generateIv());
@@ -48,29 +53,30 @@ class AES {
         byte[] iv = cipher.getIV();
         byte[] combinedPayload = new byte[iv.length + encryptedBytes.length];
 
-        //populate payload with prefix IV and encrypted data
+        // populate payload with prefix IV and encrypted data
         System.arraycopy(iv, 0, combinedPayload, 0, iv.length);
         System.arraycopy(encryptedBytes, 0, combinedPayload, iv.length, encryptedBytes.length);
 
         return combinedPayload;
     }
 
-    public static String decrypt(byte[] cipherText, SecretKey key) throws NoSuchPaddingException, NoSuchAlgorithmException,
-    InvalidAlgorithmParameterException, InvalidKeyException,
-    BadPaddingException, IllegalBlockSizeException {
+    public static String decrypt(byte[] cipherText, SecretKey key)
+            throws NoSuchPaddingException, NoSuchAlgorithmException,
+            InvalidAlgorithmParameterException, InvalidKeyException,
+            BadPaddingException, IllegalBlockSizeException {
 
         String decryptedText = "";
 
         try {
-            //separate prefix with IV from the rest of encrypted data
+            // separate prefix with IV from the rest of encrypted data
             byte[] encryptedPayload = cipherText;
             byte[] iv = new byte[16];
             byte[] encryptedBytes = new byte[encryptedPayload.length - iv.length];
 
-            //populate iv with bytes:
+            // populate iv with bytes:
             System.arraycopy(encryptedPayload, 0, iv, 0, 16);
 
-            //populate encryptedBytes with bytes:
+            // populate encryptedBytes with bytes:
             System.arraycopy(encryptedPayload, iv.length, encryptedBytes, 0, encryptedBytes.length);
 
             Cipher decryptCipher = Cipher.getInstance(algorithm);
@@ -79,7 +85,8 @@ class AES {
             byte[] decryptedBytes = decryptCipher.doFinal(encryptedBytes);
             decryptedText = new String(decryptedBytes);
 
-        } catch (NoSuchAlgorithmException | BadPaddingException | NoSuchPaddingException | IllegalBlockSizeException | InvalidAlgorithmParameterException | InvalidKeyException e) {
+        } catch (NoSuchAlgorithmException | BadPaddingException | NoSuchPaddingException | IllegalBlockSizeException
+                | InvalidAlgorithmParameterException | InvalidKeyException e) {
             e.printStackTrace();
         }
 
