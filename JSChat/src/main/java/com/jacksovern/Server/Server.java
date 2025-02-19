@@ -9,12 +9,14 @@ import java.net.ServerSocket;
 import java.security.KeyFactory;
 import java.security.PublicKey;
 import java.security.spec.X509EncodedKeySpec;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Server {
     private static int port = 1000;
-    private static ServerClient client1;
-    private static ServerClient client2;
+    private static List<ServerClient> clients = new ArrayList<>();
     private static ServerSocket serverSocket;
+    private static byte[] AESKeyBytes;   
 
     /**
      * @param portNumber
@@ -23,19 +25,23 @@ public class Server {
         port = portNumber;
         try {
             System.out.println("Server started");
+
+            AESKeyBytes = AES.generateKey(128).getEncoded();
+            System.out.println("AES key generated");
+
             serverSocket = new ServerSocket(port);
             System.out.println("Listening for clients...");
 
             // Accept first client
-            client1 = new ServerClient(serverSocket.accept(), 0);
+            clients.add(new ServerClient(serverSocket.accept(), 0));
             System.out.println("Client 1 connected");
 
             // Accept second client
-            client2 = new ServerClient(serverSocket.accept(), 1);
+            clients.add(new ServerClient(serverSocket.accept(), 1));
             System.out.println("Client 2 connected");
 
             // Start server mode to handle both clients
-            serverMode(1000);
+            serverMode();
 
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();
@@ -43,8 +49,8 @@ public class Server {
             try {
                 System.out.println("Closing server...");
                 serverSocket.close();
-                client1.closeAll();
-                client2.closeAll();
+                clients.get(0).closeAll();
+                clients.get(1).closeAll();
             } catch (Exception e) {
                 System.out.println("Error closing data streams, force closing");
                 System.exit(1);
@@ -52,21 +58,30 @@ public class Server {
         }
     }
 
-    public static void serverMode(int port) throws IOException, InterruptedException {
+    public static void handleClient(ServerClient client) throws IOException {
+        System.out.println("Handling client...");
+        byte[] publicKeyBytes = new byte[422]; // Buffer for public key
+
+        publicKeyBytes = readKeyBytes(client.getDataIn(), 422);
+
+    }
+
+    // TODO: change this to make it work with arbitrary number of clients
+    // hint - loops loops loops
+    public static void serverMode() throws IOException, InterruptedException {
         System.out.println("Starting server mode...");
 
         // Read public keys from both clients
-        byte[] firstPublicKeyBytes = readKeyBytes(client1.getDataIn(), 422);
+        byte[] firstPublicKeyBytes = readKeyBytes(clients.get(0).getDataIn(), 422);
         System.out.println("First public key read");
 
-        byte[] secondPublicKeyBytes = readKeyBytes(client2.getDataIn(), 422);
+        byte[] secondPublicKeyBytes = readKeyBytes(clients.get(1).getDataIn(), 422);
         System.out.println("Second public key read");
-
-        byte[] AESKeyBytes = AES.generateKey(128).getEncoded();
-        System.out.println("AES key generated");
 
         PublicKey firstPublicKey = null;
         PublicKey secondPublicKey = null;
+
+        // temp fix
         try {
             KeyFactory keyFactory = KeyFactory.getInstance("RSA");
             firstPublicKey = keyFactory.generatePublic(new X509EncodedKeySpec(firstPublicKeyBytes));
@@ -76,15 +91,15 @@ public class Server {
         }
 
         // Share the AES key with both clients
-        client1.getDataOut().write(RSA.encrypt(AESKeyBytes, firstPublicKey));
-        client2.getDataOut().write(RSA.encrypt(AESKeyBytes, secondPublicKey));
-        client1.getDataOut().flush();
-        client2.getDataOut().flush();
+        clients.get(0).getDataOut().write(RSA.encrypt(AESKeyBytes, firstPublicKey));
+        clients.get(1).getDataOut().write(RSA.encrypt(AESKeyBytes, secondPublicKey));
+        clients.get(0).getDataOut().flush();
+        clients.get(1).getDataOut().flush();
         System.out.println("AES key distributed to both clients");
 
         // Start message forwarding threads between clients
-        Thread thread1 = createThread(client1.getDataIn(), client2.getDataOut());
-        Thread thread2 = createThread(client2.getDataIn(), client1.getDataOut());
+        Thread thread1 = createThread(clients.get(0).getDataIn(), clients.get(1).getDataOut());
+        Thread thread2 = createThread(clients.get(1).getDataIn(), clients.get(0).getDataOut());
 
         System.out.println("Starting message forwarding threads...");
         thread1.start();
