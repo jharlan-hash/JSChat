@@ -13,9 +13,7 @@ public class JSChat {
         String input = scanner.nextLine();
         try {
             if (input.startsWith("s")) {
-                while (true) {
-                    new Server(1000);
-                }
+                new Server(1000);
             } else if (input.startsWith("c")) {
                 String[] parts = input.split(" ");
                 if (parts.length == 2) {

@@ -2,10 +2,12 @@ package com.jacksovern.Server;
 
 import java.io.*;
 import java.net.*;
+import java.security.PublicKey;
 
 public class ServerClient {
     private DataInputStream dataIn;
     private DataOutputStream dataOut;
+    private PublicKey publicKey;
     private int clientID;
 
     /**
@@ -18,14 +20,26 @@ public class ServerClient {
         clientID = id;
     }
 
+    public PublicKey getPublicKey() {
+        return publicKey;
+    }
+
+    public void setPublicKey(PublicKey publicKey) {
+        this.publicKey = publicKey;
+    }
+
+    public void setClientID(int clientID) {
+        this.clientID = clientID;
+    }
+
     public int getClientID() {
         return clientID;
     }
 
-    public void closeAll(){
-        try{
-        dataIn.close();
-        dataOut.close();
+    public void closeAll() {
+        try {
+            dataIn.close();
+            dataOut.close();
         } catch (IOException e) {
             e.printStackTrace();
         }

@@ -5,7 +5,9 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.security.KeyFactory;
+import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
+import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,6 +28,7 @@ public class Server {
         port = portNumber;
 
         try {
+            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
             System.out.println("Server started");
 
             AESKeyBytes = AES.generateKey(128).getEncoded();
@@ -39,19 +42,23 @@ public class Server {
                 try {
                     while (true) {
                         clients.add(new ServerClient(serverSocket.accept(), clients.size()));
-                        System.out.println("Client " + clients.size() + " connected");
+                        ServerClient client = clients.getLast();
+
+                        PublicKey clientKey = keyFactory
+                                .generatePublic(new X509EncodedKeySpec(readKeyBytes(client.getDataIn(), 422)));
+                        client.setPublicKey(clientKey);
+
+                        System.out.println("Public key received from client " + client.getClientID());
                     }
-                } catch (IOException e) {
+                } catch (IOException | InvalidKeySpecException e) {
                     e.printStackTrace();
                 }
             }).start();
 
-            while (true) {
-                if (clients.size() >= 2) {
-                    serverMode();
-                }
-            }
-        } catch (IOException | InterruptedException e) {
+            waitForClients();
+            serverMode();
+
+        } catch (IOException | InterruptedException | NoSuchAlgorithmException e) {
             e.printStackTrace();
         } finally {
             try {
@@ -67,35 +74,37 @@ public class Server {
         }
     }
 
-    public static void handleClient(ServerClient client) throws IOException {
-        System.out.println("Handling client...");
-        byte[] publicKeyBytes = new byte[422]; // Buffer for public key
+    private static void waitForClients() {
+        String[] frames = {
+            "Waiting for clients   ",
+            "Waiting for clients.  ",
+            "Waiting for clients.. ",
+            "Waiting for clients..."
+        };
+        int ANIMATION_DELAY = 250; // milliseconds
 
-        publicKeyBytes = readKeyBytes(client.getDataIn(), 422);
+        int frameIndex = 0;
+
+        while (clients.size() < 2) {
+            System.out.print("\r" + frames[frameIndex]);
+            frameIndex = (frameIndex + 1) % frames.length; // Loop through frames
+
+            try {
+                Thread.sleep(ANIMATION_DELAY);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt(); 
+                break;
+            }
+        }
+
+        // Clear the waiting message
+        System.out.print("\r" + " ".repeat(frames[0].length()) + "\r"); // very proud of this line
     }
 
     // TODO: change this to make it work with arbitrary number of clients
     public static void serverMode() throws IOException, InterruptedException {
-        System.out.println("Starting server mode...");
-
-        // Read public keys from both clients
-        byte[] firstPublicKeyBytes = readKeyBytes(clients.get(0).getDataIn(), 422);
-        System.out.println("First public key read");
-
-        byte[] secondPublicKeyBytes = readKeyBytes(clients.get(1).getDataIn(), 422);
-        System.out.println("Second public key read");
-
-        PublicKey firstPublicKey = null;
-        PublicKey secondPublicKey = null;
-
-        // temp fix
-        try {
-            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-            firstPublicKey = keyFactory.generatePublic(new X509EncodedKeySpec(firstPublicKeyBytes));
-            secondPublicKey = keyFactory.generatePublic(new X509EncodedKeySpec(secondPublicKeyBytes));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        PublicKey firstPublicKey = clients.get(0).getPublicKey();
+        PublicKey secondPublicKey = clients.get(1).getPublicKey();
 
         // Share the AES key with both clients
         clients.get(0).getDataOut().write(RSA.encrypt(AESKeyBytes, firstPublicKey));
