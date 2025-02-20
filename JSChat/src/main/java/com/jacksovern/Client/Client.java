@@ -66,6 +66,7 @@ public class Client {
          *
          * // Convert the byte array to a PublicKey object
          * KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+         * 
          *
          * PublicKey connectedPublicKey = keyFactory.generatePublic(new
          * X509EncodedKeySpec(connectedPublicKeyBytes));
