@@ -48,6 +48,16 @@ public class Server {
         System.out.print("\r" + " ".repeat(frames[0].length()) + "\r"); // very proud of this line
     }
 
+    public static void main(String[] args) {
+        int portNumber = 1000;
+
+        if (args.length == 1) {
+            portNumber = Integer.parseInt(args[0]);
+        }
+
+        new Server(portNumber);
+    }
+
     private static void serverMode() throws IOException, InterruptedException {
         // Create a list to track all running threads
         List<Thread> activeThreads = new ArrayList<>();
