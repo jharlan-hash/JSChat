@@ -14,24 +14,21 @@ JSChat is a fully encrypted terminal-based chat application built in Java. It pr
 ## Installation
 1. Clone or extract the project.
 2. Navigate to the project directory.
-3. Compile the project using:
-   ```sh
-   javac -d out src/main/java/com/jacksovern/**/*.java
-   ```
+3. Start the server.
+4. Start as many clients as necessary.
 
 ## Usage
 ### Starting the Server
 Run the server using:
 ```sh
-java -cp out com.jacksovern.Server.Server
+./gradlew runServer
 ```
 
 ### Starting a Client
 Run the client using:
 ```sh
-java -cp out com.jacksovern.Client.Client [server-ip]
+./gradlew runClient
 ```
-Replace `[server-ip]` with the server's IP address. If omitted, the default is `localhost`.
 
 ## Project Structure
 ```

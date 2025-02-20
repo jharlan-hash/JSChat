@@ -90,4 +90,3 @@ tasks.register<Jar>("jarServer") {
         attributes["Main-Class"] = "com.jacksovern.Server.Server"
     }
 }
-
