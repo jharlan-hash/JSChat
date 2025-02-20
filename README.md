@@ -42,9 +42,7 @@ jacksovern/
 │   ├── Server.java
 │   ├── ServerClient.java
 │   └── Message.java
-├── JSChat.java
 ```
-- `JSChat.java`: Entry point for the application.
 - `Server/`: Contains server-side logic.
 - `Client/`: Contains client-side logic.
 
