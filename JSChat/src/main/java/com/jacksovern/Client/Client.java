@@ -94,7 +94,7 @@ public class Client {
         getMessageFromServer.join();
         sendMessageToServer.join();
 
-        // this method pisses me off o_O
+        // this method pisses me off 
         ChatUtils.shutdown(dataIn, dataOut, null, null, scanner, socket, null, null);
     }
 
@@ -110,14 +110,15 @@ public class Client {
                     switch (mode) {
                         case "send":
                             while (true) {
-                                hostname = ChatUtils.sendMessageToServer(scanner, dataIn, dataOut, AESKey, hostname);
+                                hostname = ChatUtils.sendMessageToServer(scanner, dataOut, AESKey, hostname);
                                 if (hostname == null) {
                                     return;
                                 }
                             }
                         case "get":
                             while (true) {
-                                if (!ChatUtils.getMessageFromServer(scanner, dataIn, dataOut, AESKey)) {
+                                if (!ChatUtils.getMessageFromServer(scanner, dataIn, AESKey)) {
+                                    dataOut.close();
                                     return;
                                 }
                             }

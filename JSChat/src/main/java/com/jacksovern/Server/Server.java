@@ -9,44 +9,18 @@ import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import com.jacksovern.Client.AES;
 import com.jacksovern.Client.RSA;
 
 public class Server {
-    private static final List<ServerClient> clients = new ArrayList<>();
+    private static final List<ServerClient> clients = new CopyOnWriteArrayList<>();
+    private static final List<Thread> activeClientThreads = new CopyOnWriteArrayList<>();
     private static ServerSocket serverSocket;
     private static byte[] AESKeyBytes;
-
-    private static void playWaitingAnimation() {
-        String[] frames = {
-                "Waiting for clients   ",
-                "Waiting for clients.  ",
-                "Waiting for clients.. ",
-                "Waiting for clients..."
-        };
-        int ANIMATION_DELAY = 250; // milliseconds
-
-        int frameIndex = 0;
-
-        while (clients.size() < 2) {
-            System.out.print("\r" + frames[frameIndex]);
-            frameIndex = (frameIndex + 1) % frames.length; // Loop through frames
-
-            try {
-                Thread.sleep(ANIMATION_DELAY);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                break;
-            }
-        }
-
-        // Clear the waiting message
-        System.out.print("\r" + " ".repeat(frames[0].length()) + "\r"); // very proud of this line
-    }
 
     public static void main(String[] args) {
         int portNumber = 1000;
@@ -58,41 +32,53 @@ public class Server {
         new Server(portNumber);
     }
 
-    private static void serverMode() throws IOException, InterruptedException {
-        // Create a list to track all running threads
-        List<Thread> activeThreads = new ArrayList<>();
-
-        while (true) { // Keep checking for new clients
-            // Check for any clients that don't have threads yet
-            for (ServerClient client : new ArrayList<>(clients)) { // Create copy to avoid concurrent modification
-                if (!activeThreads.stream().anyMatch(t -> t.getName().equals("ClientHandler-" + client.getClientID()) &&
-                        t.isAlive())) { // this long line checks if a thread is already handling the client
-                    // Create and start new thread for this client
-                    Thread thread = handleClient(client);
-                    thread.setName("ClientHandler-" + client.getClientID());
-                    thread.start();
-                    activeThreads.add(thread);
-                    System.out.println("Started message handler for client " + client.getClientID());
-                }
-            }
-
-            // Clean up any finished threads
-            activeThreads.removeIf(thread -> !thread.isAlive());
-
-            // Small delay to prevent busy-waiting
-            Thread.sleep(100);
+    private static void handleClient(ServerClient client) {
+        try {
+            // Create and start new thread for this client
+            Thread thread = createClientThread(client);
+            thread.setName("ClientHandler-" + client.getClientID());
+            thread.start();
+            activeClientThreads.add(thread);
+            System.out.println("Started message handler for client " + client.getClientID());
+        } catch (Exception e) {
+            System.out.println("Error starting message handler for client " + client.getClientID());
+            e.printStackTrace();
         }
     }
 
-    private static Thread handleClient(ServerClient client) {
+    private static void acceptClient(ServerClient client) {
+        try {
+            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+            clients.add(client);
+
+            PublicKey clientKey = keyFactory
+                    .generatePublic(new X509EncodedKeySpec(readKeyBytes(client.getDataIn(), 422)));
+            client.setPublicKey(clientKey);
+
+            System.out.println("Public key received from client " + client.getClientID());
+
+            byte[] encryptedAESKey = RSA.encrypt(AESKeyBytes, client.getPublicKey());
+
+            client.getDataOut().write(encryptedAESKey);
+            client.getDataOut().flush();
+
+            handleClient(client);
+            System.out.println("AES key sent to client " + client.getClientID());
+        } catch (IOException | NoSuchAlgorithmException | InvalidKeySpecException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static Thread createClientThread(ServerClient client) {
+
         return new Thread(() -> {
             try {
-                while (true) {
+                while (clients.size() > 0) {
                     DataInputStream dataIn = client.getDataIn();
 
                     int messageLength = dataIn.readInt(); // Read message length
                     if (messageLength <= 0) {
-                        continue; // what does this do? keeping it in case it's important
+                        continue;
                     }
 
                     // Read message data
@@ -109,20 +95,22 @@ public class Server {
                     Message message = new Message(messageBytes);
 
                     // Forward message to all other clients
-                    for (ServerClient destClient : clients) {
+                    for (ServerClient destClient : new CopyOnWriteArrayList<>(clients)) {
                         if (!destClient.equals(client)) {
                             writeMessage(message, destClient.getDataOut());
                         }
                     }
                 }
             } catch (IOException e) {
-                System.out.println("Client disconnected");
+                client.closeAll();
+                clients.remove(client);
+                System.out.println("Client " + client.getClientID() + " disconnected");
             }
         });
     }
 
     private static byte[] readKeyBytes(DataInputStream dataIn, int length) throws IOException {
-        byte[] keyBytes = new byte[length]; // Buffer for public key (usually 422 butes for RSA)
+        byte[] keyBytes = new byte[length]; // Buffer for public key (usually 422 bytes for RSA)
         int p = 0;
         while (p < keyBytes.length) {
             int read = dataIn.read(keyBytes, p, keyBytes.length - p);
@@ -147,8 +135,38 @@ public class Server {
     }
 
     public Server(int portNumber) {
+        // Add shutdown hook
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            System.out.println("Shutdown initiated, closing server...");
+            try {
+                if (serverSocket != null && !serverSocket.isClosed()) {
+                    serverSocket.close();
+                }
+
+                // Notify all clients of shutdown and close connections
+                for (ServerClient client : new CopyOnWriteArrayList<>(clients)) {
+                    try {
+                        // Optionally send a shutdown message to clients
+                        Message shutdownMsg = new Message("Server shutting down".getBytes());
+                        writeMessage(shutdownMsg, client.getDataOut());
+                        client.closeAll();
+                    } catch (Exception e) {
+                        System.err.println("Error notifying client " + client.getClientID() + " of shutdown");
+                    }
+                }
+
+                // Interrupt all client handler threads
+                for (Thread thread : activeClientThreads) {
+                    thread.interrupt();
+                }
+
+                System.out.println("Server shutdown complete");
+            } catch (IOException e) {
+                System.err.println("Error during shutdown: " + e.getMessage());
+            }
+        }));
+
         try {
-            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
             System.out.println("Server started");
 
             AESKeyBytes = Objects.requireNonNull(AES.generateKey(128)).getEncoded();
@@ -157,39 +175,17 @@ public class Server {
             serverSocket = new ServerSocket(portNumber);
             System.out.println("Listening for clients...");
 
-            // thread to continuously accept clients
-            new Thread(() -> {
-                try {
-                    while (true) {
-                        ServerClient client = new ServerClient(serverSocket.accept(), clients.size());
-                        clients.add(client);
-
-                        PublicKey clientKey = keyFactory
-                                .generatePublic(new X509EncodedKeySpec(readKeyBytes(client.getDataIn(), 422)));
-                        client.setPublicKey(clientKey);
-
-                        System.out.println("Public key received from client " + client.getClientID());
-
-                        client.getDataOut().write(RSA.encrypt(AESKeyBytes, client.getPublicKey()));
-                        client.getDataOut().flush();
-
-                        System.out.println("AES key sent to client " + client.getClientID());
-                    }
-                } catch (IOException | InvalidKeySpecException e) {
-                    e.printStackTrace();
-                }
-            }).start();
-
-            // playWaitingAnimation();
-            serverMode();
-
-        } catch (IOException | InterruptedException | NoSuchAlgorithmException e) {
+            // continuously accept clients
+            while (true) {
+                acceptClient(new ServerClient(serverSocket.accept(), clients.size()));
+            }
+        } catch (IOException e) {
             e.printStackTrace();
         } finally {
             try {
                 System.out.println("Closing server...");
                 serverSocket.close();
-                for (ServerClient client : clients) {
+                for (ServerClient client : new CopyOnWriteArrayList<>(clients)) {
                     client.closeAll();
                 }
             } catch (Exception e) {
