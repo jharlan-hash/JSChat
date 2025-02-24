@@ -21,13 +21,13 @@ JSChat is a fully encrypted terminal-based chat application built in Java. It pr
 ### Starting the Server
 Run the server using:
 ```sh
-./gradlew runServer
+./gradlew runServer -q --console plain
 ```
 
 ### Starting a Client
 Run the client using:
 ```sh
-./gradlew runClient
+./gradlew runClient -q --console plain
 ```
 
 ## Project Structure
