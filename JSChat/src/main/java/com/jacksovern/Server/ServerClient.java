@@ -30,10 +30,6 @@ public class ServerClient {
         this.publicKey = publicKey;
     }
 
-    public void setClientID(int clientID) {
-        this.clientID = clientID;
-    }
-
     public int getClientID() {
         return clientID;
     }

@@ -9,6 +9,7 @@ import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Scanner;
+
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
@@ -22,7 +23,7 @@ public class ChatUtils {
     public static boolean isFirstClient = true;
     public static int portNumber = 1000;
 
-    public static boolean getMessageFromServer(Scanner scanner, DataInputStream dataIn, DataOutputStream dataOut, SecretKey AESKey) throws IOException {
+    public static boolean getMessageFromServer(Scanner scanner, DataInputStream dataIn, SecretKey AESKey) throws IOException {
         byte[] encryptedMessage;
 
         try{
@@ -30,7 +31,6 @@ public class ChatUtils {
         } catch (Exception e) {
             scanner.close();
             dataIn.close();
-            dataOut.close();
             System.out.println("Server disconnected");
             return false;
         }
@@ -42,7 +42,6 @@ public class ChatUtils {
             System.out.println("error decrypting message");
             scanner.close();
             dataIn.close();
-            dataOut.close();
             return false; 
         }
 
@@ -51,7 +50,7 @@ public class ChatUtils {
         return true;
     }
 
-    public static String sendMessageToServer(Scanner scanner, DataInputStream dataIn, DataOutputStream dataOut, SecretKey AESKey, String hostname) throws
+    public static String sendMessageToServer(Scanner scanner, DataOutputStream dataOut, SecretKey AESKey, String hostname) throws
     IOException, 
     IllegalBlockSizeException, 
     BadPaddingException, 
@@ -67,7 +66,6 @@ public class ChatUtils {
             byte[] exitNotification = AES.encrypt("\r{Server} " + hostname + " has left the chat - use /exit to leave", AESKey);
             dataOut.writeInt(exitNotification.length);
             dataOut.write(exitNotification);
-            dataIn.close();
             dataOut.close();
             return null;
         }
