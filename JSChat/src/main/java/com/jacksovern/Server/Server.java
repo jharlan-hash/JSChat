@@ -13,6 +13,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import com.jacksovern.Message;
+
 import com.jacksovern.Client.AES;
 import com.jacksovern.Client.RSA;
 
@@ -92,7 +94,7 @@ public class Server {
                         bytesRead += result;
                     }
 
-                    Message message = new Message(messageBytes);
+                    Message message = new Message(messageBytes, client.getClientID());
 
                     // Forward message to all other clients
                     for (ServerClient destClient : new CopyOnWriteArrayList<>(clients)) {
@@ -135,37 +137,6 @@ public class Server {
     }
 
     public Server(int portNumber) {
-        // Add shutdown hook
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            System.out.println("Shutdown initiated, closing server...");
-            try {
-                if (serverSocket != null && !serverSocket.isClosed()) {
-                    serverSocket.close();
-                }
-
-                // Notify all clients of shutdown and close connections
-                for (ServerClient client : new CopyOnWriteArrayList<>(clients)) {
-                    try {
-                        // Optionally send a shutdown message to clients
-                        Message shutdownMsg = new Message("Server shutting down".getBytes());
-                        writeMessage(shutdownMsg, client.getDataOut());
-                        client.closeAll();
-                    } catch (Exception e) {
-                        System.err.println("Error notifying client " + client.getClientID() + " of shutdown");
-                    }
-                }
-
-                // Interrupt all client handler threads
-                for (Thread thread : activeClientThreads) {
-                    thread.interrupt();
-                }
-
-                System.out.println("Server shutdown complete");
-            } catch (IOException e) {
-                System.err.println("Error during shutdown: " + e.getMessage());
-            }
-        }));
-
         try {
             System.out.println("Server started");
 

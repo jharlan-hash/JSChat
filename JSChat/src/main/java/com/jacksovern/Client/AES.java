@@ -32,7 +32,7 @@ public class AES {
             return key;
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
-            return null; 
+            return null;
         }
     }
 
@@ -42,29 +42,29 @@ public class AES {
         return new IvParameterSpec(iv);
     }
 
-    public static byte[] encrypt(String input, SecretKey key) throws NoSuchPaddingException, NoSuchAlgorithmException,
-            InvalidAlgorithmParameterException, InvalidKeyException,
-            BadPaddingException, IllegalBlockSizeException {
+    public static byte[] encrypt(String input, SecretKey key) {
+        byte[] combinedPayload = null;
 
-        Cipher cipher = Cipher.getInstance(algorithm);
-        cipher.init(Cipher.ENCRYPT_MODE, key, generateIv());
+        try {
+            Cipher cipher = Cipher.getInstance(algorithm);
+            cipher.init(Cipher.ENCRYPT_MODE, key, generateIv());
 
-        byte[] encryptedBytes = cipher.doFinal(input.getBytes());
-        byte[] iv = cipher.getIV();
-        byte[] combinedPayload = new byte[iv.length + encryptedBytes.length];
+            byte[] encryptedBytes = cipher.doFinal(input.getBytes());
+            byte[] iv = cipher.getIV();
+            combinedPayload = new byte[iv.length + encryptedBytes.length];
 
-        // populate payload with prefix IV and encrypted data
-        System.arraycopy(iv, 0, combinedPayload, 0, iv.length);
-        System.arraycopy(encryptedBytes, 0, combinedPayload, iv.length, encryptedBytes.length);
+            // populate payload with prefix IV and encrypted data
+            System.arraycopy(iv, 0, combinedPayload, 0, iv.length);
+            System.arraycopy(encryptedBytes, 0, combinedPayload, iv.length, encryptedBytes.length);
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException
+                | BadPaddingException | IllegalBlockSizeException | InvalidAlgorithmParameterException e) {
+            e.printStackTrace();
+        }
 
         return combinedPayload;
     }
 
-    public static String decrypt(byte[] cipherText, SecretKey key)
-            throws NoSuchPaddingException, NoSuchAlgorithmException,
-            InvalidAlgorithmParameterException, InvalidKeyException,
-            BadPaddingException, IllegalBlockSizeException {
-
+    public static String decrypt(byte[] cipherText, SecretKey key) {
         String decryptedText = "";
 
         try {

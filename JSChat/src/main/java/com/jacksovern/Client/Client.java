@@ -5,132 +5,115 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
 import java.security.KeyPair;
-import java.security.NoSuchAlgorithmException;
-import java.util.Scanner;
 
-import javax.crypto.BadPaddingException;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
 public class Client {
-    private static SecretKey AESKey;
-    private static String ipAddress = "localhost";
-    private static Scanner scanner = new Scanner(System.in);
+    private static final int AES_KEY_LENGTH = 384;
 
     public static void main(String[] args) {
-        if (args.length >= 1) {
-            ipAddress = args[1];
-        }
+        new Client("localhost", 1000);
+    }
+    private DataInputStream dataIn;
+    private DataOutputStream dataOut;
+    private Socket socket;
+    private KeyPair keyPair;
 
+    private SecretKey AESKey;
+
+    public Client(String serverIP, int port) {
         try {
-            clientMode(ipAddress, ChatUtils.portNumber);
-        } catch (Exception e) {
-            System.out.println("Error: " + e.getMessage());
+            this.socket = new Socket();
+            socket.connect(new InetSocketAddress(serverIP, port), 0);
+
+            this.dataIn = new DataInputStream(socket.getInputStream());
+            this.dataOut = new DataOutputStream(socket.getOutputStream());
+
+            createKeys();
+
+            System.out.println("Connected to server at " + serverIP + ":" + port);
+
+            MessageSender sender = new MessageSender(dataOut, AESKey);
+            MessageReceiver receiver = new MessageReceiver(dataIn, AESKey);
+
+            Thread senderThread = new Thread(() -> {
+                while (true) {
+                    try {
+                        String message = sender.getMessage();
+
+                        if (message.equals("/exit")) {
+                            sender.send("Client disconnected.");
+                            closeAll();
+                            break;
+                        }
+
+                        sender.send(message);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
+
+            Thread receiverThread = new Thread(() -> {
+                while (true) {
+                    try {
+                        String message = receiver.getMessage();
+                        if (message == null) {
+                            closeAll();
+                            break;
+                        } else {
+                            System.out.println(message);
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
+
+            senderThread.start();
+            receiverThread.start();
+
+            senderThread.join();
+            receiverThread.join();
+
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
+            try {
+                socket.close();
+            } catch (IOException ignored) {
+            }
+        }
+    }
+
+    public void closeAll() {
+        try {
+            dataIn.close();
+            dataOut.close();
+            socket.close();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
     /**
-     * @param ip
-     * @param port
-     * @throws Exception
-     *                   Starts the client mode of the chat application.
+     * Method to generate a keypair and recieve the AES key from the server
      */
-    public static void clientMode(String ip, int port) throws Exception {
-        Socket socket = new Socket();
-        KeyPair keypair = RSA.generateRSAKeyPair();
-
-        socket.connect(new InetSocketAddress(ip, port), 0);
-        System.out.println("Connection successful!");
-
-        DataInputStream dataIn = new DataInputStream(socket.getInputStream());
-        DataOutputStream dataOut = new DataOutputStream(socket.getOutputStream());
-
-        dataOut.write(keypair.getPublic().getEncoded()); // send public key to server
-
-        /*
-         * Steps to establish a secure connection with the server:
-         * 1. Generate public and private keypair
-         * 2. Send public key to server
-         * 3. Receive encrypted AES key
-         * 4. Decrypt AES key
-         * 5. Use AES key for encrypting messages
-         */
-
-        /*
-         * byte[] connectedPublicKeyBytes = ChatUtils.readKeyBytes(dataIn, 422);
-         *
-         * // Convert the byte array to a PublicKey object
-         * KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-         * 
-         *
-         * PublicKey connectedPublicKey = keyFactory.generatePublic(new
-         * X509EncodedKeySpec(connectedPublicKeyBytes));
-         *
-         * dataOut.write(RSA.encrypt(AESKey.getEncoded(), connectedPublicKey)); // send
-         * AES key to server
-         */
-
-        byte[] AESKeyBytes = new byte[384];
-        if (dataIn.read(AESKeyBytes) < 384) {
-            System.out.println("AES key not received in full.");
-        }
-
+    private void createKeys() {
+        // Generate and send RSA keypair
+        keyPair = RSA.generateRSAKeyPair();
         try {
-            AESKey = new SecretKeySpec(RSA.decrypt(AESKeyBytes, keypair.getPrivate()), "AES");
-        } catch (Exception ignored) {
-        }
+            dataOut.write(keyPair.getPublic().getEncoded());
 
-        Thread sendMessageToServer = createThread(keypair, socket, "send");
-        Thread getMessageFromServer = createThread(keypair, socket, "get");
-
-        getMessageFromServer.start(); // start the thread to receive messages from the server
-        sendMessageToServer.start(); // start the thread to send messages to the server
-
-        getMessageFromServer.join();
-        sendMessageToServer.join();
-
-        // this method pisses me off 
-        ChatUtils.shutdown(dataIn, dataOut, null, null, scanner, socket, null, null);
-    }
-
-    public static Thread createThread(KeyPair keypair, Socket socket, String mode)
-            throws IOException {
-        Thread getMessageFromClient = new Thread() {
-            public void run() {
-                try {
-                    DataInputStream dataIn = new DataInputStream(socket.getInputStream());
-                    DataOutputStream dataOut = new DataOutputStream(socket.getOutputStream());
-                    String hostname = socket.getInetAddress().getHostName();
-
-                    switch (mode) {
-                        case "send":
-                            while (true) {
-                                hostname = ChatUtils.sendMessageToServer(scanner, dataOut, AESKey, hostname);
-                                if (hostname == null) {
-                                    return;
-                                }
-                            }
-                        case "get":
-                            while (true) {
-                                if (!ChatUtils.getMessageFromServer(scanner, dataIn, AESKey)) {
-                                    dataOut.close();
-                                    return;
-                                }
-                            }
-                    }
-                } catch (
-                        IOException | IllegalBlockSizeException | BadPaddingException | InvalidKeyException
-                        | InvalidAlgorithmParameterException | NoSuchAlgorithmException | NoSuchPaddingException e) {
-                    return;
-                }
+            byte[] AESKeyBytes = new byte[AES_KEY_LENGTH];
+            if (dataIn.read(AESKeyBytes) < AES_KEY_LENGTH) {
+                System.out.println("AES key not received in full.");
             }
-        };
 
-        return getMessageFromClient;
+            AESKey = new SecretKeySpec(RSA.decrypt(AESKeyBytes, keyPair.getPrivate()), "AES");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
