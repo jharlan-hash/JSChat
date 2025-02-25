@@ -2,6 +2,7 @@ package com.jacksovern.Server;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.security.KeyFactory;
@@ -12,9 +13,14 @@ import java.security.spec.X509EncodedKeySpec;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import com.jacksovern.Message;
-
 import com.jacksovern.Client.AES;
 import com.jacksovern.Client.RSA;
 
@@ -23,6 +29,11 @@ public class Server {
     private static final List<Thread> activeClientThreads = new CopyOnWriteArrayList<>();
     private static ServerSocket serverSocket;
     private static byte[] AESKeyBytes;
+
+    public static ExecutorService newCachedThreadPool() {
+        return new ThreadPoolExecutor(0, Integer.MAX_VALUE, 60L, TimeUnit.SECONDS,
+                new SynchronousQueue<Runnable>());
+    }
 
     public static void main(String[] args) {
         int portNumber = 1000;
@@ -72,7 +83,6 @@ public class Server {
     }
 
     private static Thread createClientThread(ServerClient client) {
-
         return new Thread(() -> {
             try {
                 while (clients.size() > 0) {
@@ -135,6 +145,7 @@ public class Server {
             e.printStackTrace();
         }
     }
+
 
     public Server(int portNumber) {
         try {

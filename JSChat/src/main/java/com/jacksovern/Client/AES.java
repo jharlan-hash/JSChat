@@ -13,15 +13,6 @@ import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 
 public class AES {
-    /*
-     * String input =
-     * "adsfjkhlasfhdkalsjhflafkjhaslkfhaslkdfjhsflkajhflkasdfhjaldskjfahfdkl";
-     * SecretKey key = generateKey(128);
-     * byte[] cipherText = encrypt(input, key);
-     * String plainText = decrypt(cipherText, key);
-     * System.out.println("Decrypted: " + plainText);
-     */
-
     public final static String algorithm = "AES/CBC/PKCS5Padding";
 
     public static SecretKey generateKey(int n) {

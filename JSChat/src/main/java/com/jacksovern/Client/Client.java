@@ -16,12 +16,14 @@ public class Client {
     public static void main(String[] args) {
         new Client("localhost", 1000);
     }
+
     private DataInputStream dataIn;
     private DataOutputStream dataOut;
     private Socket socket;
     private KeyPair keyPair;
 
     private SecretKey AESKey;
+
 
     public Client(String serverIP, int port) {
         try {
@@ -38,39 +40,8 @@ public class Client {
             MessageSender sender = new MessageSender(dataOut, AESKey);
             MessageReceiver receiver = new MessageReceiver(dataIn, AESKey);
 
-            Thread senderThread = new Thread(() -> {
-                while (true) {
-                    try {
-                        String message = sender.getMessage();
-
-                        if (message.equals("/exit")) {
-                            sender.send("Client disconnected.");
-                            closeAll();
-                            break;
-                        }
-
-                        sender.send(message);
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                }
-            });
-
-            Thread receiverThread = new Thread(() -> {
-                while (true) {
-                    try {
-                        String message = receiver.getMessage();
-                        if (message == null) {
-                            closeAll();
-                            break;
-                        } else {
-                            System.out.println(message);
-                        }
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                }
-            });
+            Thread senderThread = sendThread(sender);
+            Thread receiverThread = receiveThread(receiver);
 
             senderThread.start();
             receiverThread.start();
@@ -87,6 +58,46 @@ public class Client {
         }
     }
 
+    private Thread receiveThread(MessageReceiver receiver) {
+        return new Thread(() -> {
+            while (true) {
+                try {
+                    String message = receiver.getMessage();
+                    if (message == null) {
+                        closeAll();
+                        break;
+                    } else {
+                        System.out.println(message);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+    }
+
+    private Thread sendThread(MessageSender sender) {
+        return new Thread(() -> {
+            while (true) {
+                try {
+                    String message = sender.getMessage();
+
+                    if (message.equals("/exit")) {
+                        sender.send("Client disconnected.");
+                        closeAll();
+                        break;
+                    }
+
+                    if (!message.startsWith("/")) { // do not send commands to server
+                        sender.send(message);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+    }
+
     public void closeAll() {
         try {
             dataIn.close();
@@ -98,12 +109,13 @@ public class Client {
     }
 
     /**
-     * Method to generate a keypair and recieve the AES key from the server
+     * Method to generate a keypair, send it to the server, and recieve the AES key.
      */
     private void createKeys() {
         // Generate and send RSA keypair
         keyPair = RSA.generateRSAKeyPair();
         try {
+            // Send public key to server
             dataOut.write(keyPair.getPublic().getEncoded());
 
             byte[] AESKeyBytes = new byte[AES_KEY_LENGTH];

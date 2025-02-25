@@ -1,23 +1,31 @@
 package com.jacksovern.Client;
 
+import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.util.Scanner;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import javax.crypto.SecretKey;
 
 public class MessageSender {
+    private static final String USER_PROMPT = "[you] ";
     private DataOutputStream out;
     private SecretKey key;
     private Scanner scanner;
-    private String username;
 
-    private static final String USER_PROMPT = "[you] ";
+    private String username;
 
     public MessageSender(DataOutputStream out, SecretKey key) {
         this.out = out;
         this.key = key;
         this.scanner = new Scanner(System.in);
+
+        username = getRealName();
     }
 
     public void send(String message) {
@@ -50,6 +58,35 @@ public class MessageSender {
         } else if (message.startsWith("/")) {
             System.out.println("Invalid command.");
             System.out.println("Commands: /exit, /nick <newUsername>");
+        }
+    }
+
+    private String getRealName() {
+        try {
+            ExecutorService executorService = Executors.newSingleThreadExecutor();
+            ProcessBuilder builder = new ProcessBuilder();
+            builder.command("id", "-F");
+            builder.directory(new File(System.getProperty("user.home")));
+
+            Process process = builder.start();
+
+            // return output of the command into a string
+            Future<String> future = executorService.submit(() -> {
+                StringBuilder output = new StringBuilder();
+                try (DataInputStream dataIn = new DataInputStream(process.getInputStream())) {
+                    byte[] buffer = new byte[1024];
+                    int bytesRead;
+                    while ((bytesRead = dataIn.read(buffer)) != -1) {
+                        output.append(new String(buffer, 0, bytesRead));
+                    }
+                }
+                return output.toString();
+            });
+
+            return future.get().trim();
+        } catch (IOException | ExecutionException | InterruptedException e) {
+            e.printStackTrace();
+            return null;
         }
     }
 
